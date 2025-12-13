@@ -17,6 +17,7 @@ public class Book {
     private int totalPages;
     private int pagesRead;
     private String status; // Read / In Progress / Want to Read
+    private Integer rating; // 1-5 stars, optional
 
     // Many books belong to one user
     @ManyToOne
@@ -98,6 +99,14 @@ public class Book {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Integer getRating() {
+        return rating;
+    }
+
+    public void setRating(Integer rating) {
+        this.rating = rating;
     }
 
     public User getUser() {
