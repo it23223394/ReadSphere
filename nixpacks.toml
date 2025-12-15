@@ -1,5 +1,5 @@
 [phases.setup]
-aptPkgs = ["openjdk-17-jdk", "maven"]
+aptPkgs = ["openjdk-21-jdk", "maven"]
 
 [phases.install]
 cmds = ["cd backend && mvn dependency:go-offline -B"]
