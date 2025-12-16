@@ -1,6 +1,7 @@
 package com.example.readsphere.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 @Entity
@@ -20,6 +21,7 @@ public class User {
 
     // One user can have many books
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Book> books;
 
     // Constructors
