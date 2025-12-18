@@ -19,6 +19,19 @@ public class User {
 
     private String password;
 
+    // Password reset token
+    private String resetToken;
+    
+    // Email verification
+    private boolean emailVerified = false;
+    private String verificationToken;
+
+    // User preferences
+    private Integer readingGoalBooksPerMonth;
+    private Integer readingGoalPagesPerDay;
+    private String theme = "light"; // light or dark
+    private Boolean notificationsEnabled = true;
+
     // One user can have many books
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
@@ -72,5 +85,61 @@ public class User {
 
     public void setBooks(List<Book> books) {
         this.books = books;
+    }
+
+    public String getResetToken() {
+        return resetToken;
+    }
+
+    public void setResetToken(String resetToken) {
+        this.resetToken = resetToken;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getVerificationToken() {
+        return verificationToken;
+    }
+
+    public void setVerificationToken(String verificationToken) {
+        this.verificationToken = verificationToken;
+    }
+
+    public Integer getReadingGoalBooksPerMonth() {
+        return readingGoalBooksPerMonth;
+    }
+
+    public void setReadingGoalBooksPerMonth(Integer readingGoalBooksPerMonth) {
+        this.readingGoalBooksPerMonth = readingGoalBooksPerMonth;
+    }
+
+    public Integer getReadingGoalPagesPerDay() {
+        return readingGoalPagesPerDay;
+    }
+
+    public void setReadingGoalPagesPerDay(Integer readingGoalPagesPerDay) {
+        this.readingGoalPagesPerDay = readingGoalPagesPerDay;
+    }
+
+    public String getTheme() {
+        return theme;
+    }
+
+    public void setTheme(String theme) {
+        this.theme = theme;
+    }
+
+    public Boolean getNotificationsEnabled() {
+        return notificationsEnabled;
+    }
+
+    public void setNotificationsEnabled(Boolean notificationsEnabled) {
+        this.notificationsEnabled = notificationsEnabled;
     }
 }

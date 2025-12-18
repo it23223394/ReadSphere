@@ -3,6 +3,13 @@ package com.example.readsphere.service;
 import com.example.readsphere.dto.RegisterRequest;
 import com.example.readsphere.dto.LoginRequest;
 import com.example.readsphere.dto.AuthResponse;
+import com.example.readsphere.dto.UpdateProfileRequest;
+import com.example.readsphere.dto.UserProfileResponse;
+import com.example.readsphere.dto.ChangePasswordRequest;
+import com.example.readsphere.dto.PasswordResetRequest;
+import com.example.readsphere.dto.ResetPasswordConfirmRequest;
+import com.example.readsphere.dto.UserSettingsRequest;
+import com.example.readsphere.dto.UserSettingsResponse;
 import com.example.readsphere.model.User;
 import com.example.readsphere.repository.UserRepository;
 import com.example.readsphere.security.JwtTokenProvider;
@@ -10,7 +17,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Service
@@ -21,6 +31,9 @@ public class UserService {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private EmailService emailService;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
@@ -152,5 +165,285 @@ public class UserService {
      */
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    /**
+     * Get user profile by ID
+     * RS-103: User Profile Management
+     */
+    public UserProfileResponse getUserProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return new UserProfileResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                "Profile retrieved successfully"
+        );
+    }
+
+    /**
+     * Update user profile
+     * RS-103: User Profile Management
+     */
+    public UserProfileResponse updateUserProfile(Long userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // Validate name
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            user.setName(request.getName().trim());
+        }
+
+        // Validate and update email if provided
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            // Check if email format is valid
+            if (!isValidEmail(request.getEmail())) {
+                throw new IllegalArgumentException("Please provide a valid email address");
+            }
+
+            // Check if email is already taken by another user
+            Optional<User> existingUser = userRepository.findByEmail(request.getEmail());
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                throw new IllegalArgumentException("Email already in use by another account");
+            }
+
+            user.setEmail(request.getEmail().trim());
+        }
+
+        User updatedUser = userRepository.save(user);
+
+        return new UserProfileResponse(
+                updatedUser.getId(),
+                updatedUser.getName(),
+                updatedUser.getEmail(),
+                "Profile updated successfully"
+        );
+    }
+
+    /**
+     * Change user password
+     * RS-103: User Profile Management
+     */
+    public UserProfileResponse changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // Validate old password
+        if (request.getOldPassword() == null || request.getOldPassword().isEmpty()) {
+            throw new IllegalArgumentException("Current password is required");
+        }
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        // Validate new password
+        if (request.getNewPassword() == null || request.getNewPassword().isEmpty()) {
+            throw new IllegalArgumentException("New password cannot be empty");
+        }
+
+        if (request.getNewPassword().length() < 6) {
+            throw new IllegalArgumentException("New password must be at least 6 characters long");
+        }
+
+        // Check if passwords match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("New passwords do not match");
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return new UserProfileResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                "Password changed successfully"
+        );
+    }
+
+    /**
+     * Request password reset - send reset token via email
+     * RS-104: Password Reset Flow
+     */
+    public Map<String, String> requestPasswordReset(PasswordResetRequest request) {
+        // Validate email
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be empty");
+        }
+
+        // Find user by email
+        Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
+        
+        // Always return success message for security (don't reveal if email exists)
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "If the email exists, a password reset link has been sent");
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            
+            // Generate unique reset token
+            String resetToken = UUID.randomUUID().toString();
+            user.setResetToken(resetToken);
+            userRepository.save(user);
+
+            // Send email with reset link
+            emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+        }
+
+        return response;
+    }
+
+    /**
+     * Confirm password reset with token
+     * RS-104: Password Reset Flow
+     */
+    public Map<String, String> resetPassword(ResetPasswordConfirmRequest request) {
+        // Validate token
+        if (request.getToken() == null || request.getToken().trim().isEmpty()) {
+            throw new IllegalArgumentException("Reset token is required");
+        }
+
+        // Find user by reset token
+        User user = userRepository.findByResetToken(request.getToken())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired reset token"));
+
+        // Validate new password
+        if (request.getNewPassword() == null || request.getNewPassword().isEmpty()) {
+            throw new IllegalArgumentException("New password cannot be empty");
+        }
+
+        if (request.getNewPassword().length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters long");
+        }
+
+        // Check if passwords match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("Passwords do not match");
+        }
+
+        // Update password and clear reset token
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setResetToken(null);
+        userRepository.save(user);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Password reset successfully");
+        return response;
+    }
+
+    /**
+     * Send email verification
+     * RS-105: Email Verification
+     */
+    public Map<String, String> sendEmailVerification(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (user.isEmailVerified()) {
+            throw new IllegalArgumentException("Email is already verified");
+        }
+
+        // Generate unique verification token
+        String verificationToken = UUID.randomUUID().toString();
+        user.setVerificationToken(verificationToken);
+        userRepository.save(user);
+
+        // Send verification email
+        emailService.sendVerificationEmail(user.getEmail(), verificationToken);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Verification email sent");
+        return response;
+    }
+
+    /**
+     * Verify email with token
+     * RS-105: Email Verification
+     */
+    public Map<String, String> verifyEmail(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Verification token is required");
+        }
+
+        User user = userRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired verification token"));
+
+        user.setEmailVerified(true);
+        user.setVerificationToken(null);
+        userRepository.save(user);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Email verified successfully");
+        return response;
+    }
+
+    /**
+     * Get user settings
+     * RS-106: User Settings & Preferences
+     */
+    public UserSettingsResponse getUserSettings(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return new UserSettingsResponse(
+                user.getId(),
+                user.getReadingGoalBooksPerMonth(),
+                user.getReadingGoalPagesPerDay(),
+                user.getTheme(),
+                user.getNotificationsEnabled(),
+                "Settings retrieved successfully"
+        );
+    }
+
+    /**
+     * Update user settings
+     * RS-106: User Settings & Preferences
+     */
+    public UserSettingsResponse updateUserSettings(Long userId, UserSettingsRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // Update reading goals
+        if (request.getReadingGoalBooksPerMonth() != null) {
+            if (request.getReadingGoalBooksPerMonth() < 0) {
+                throw new IllegalArgumentException("Reading goal cannot be negative");
+            }
+            user.setReadingGoalBooksPerMonth(request.getReadingGoalBooksPerMonth());
+        }
+
+        if (request.getReadingGoalPagesPerDay() != null) {
+            if (request.getReadingGoalPagesPerDay() < 0) {
+                throw new IllegalArgumentException("Reading goal cannot be negative");
+            }
+            user.setReadingGoalPagesPerDay(request.getReadingGoalPagesPerDay());
+        }
+
+        // Update theme
+        if (request.getTheme() != null) {
+            if (!request.getTheme().equals("light") && !request.getTheme().equals("dark")) {
+                throw new IllegalArgumentException("Theme must be 'light' or 'dark'");
+            }
+            user.setTheme(request.getTheme());
+        }
+
+        // Update notifications
+        if (request.getNotificationsEnabled() != null) {
+            user.setNotificationsEnabled(request.getNotificationsEnabled());
+        }
+
+        User updatedUser = userRepository.save(user);
+
+        return new UserSettingsResponse(
+                updatedUser.getId(),
+                updatedUser.getReadingGoalBooksPerMonth(),
+                updatedUser.getReadingGoalPagesPerDay(),
+                updatedUser.getTheme(),
+                updatedUser.getNotificationsEnabled(),
+                "Settings updated successfully"
+        );
     }
 }

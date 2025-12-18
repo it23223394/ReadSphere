@@ -28,8 +28,9 @@ export const Navbar = () => {
           <li><a href="/bookshelf">Bookshelf</a></li>
           <li><a href="/recommendations">Recommendations</a></li>
           <li><a href="/notes-quotes">Notes & Quotes</a></li>
+          <li><a href="/profile">Profile</a></li>
+          <li><a href="/settings">Settings</a></li>
         </ul>
-
         <button onClick={handleLogout} className="logout-btn">
           Logout
         </button>

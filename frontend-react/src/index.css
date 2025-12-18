@@ -1,3 +1,90 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Theme variables: Vintage light and dark palettes */
+/* Default values (overridden by theme-specific classes on body) */
+:root {
+	--color-text: #3a2a23;
+	--color-bg: #f2e9da;
+	--color-surface: #fffaf2;
+	--color-muted: #b7a89a;
+	--color-accent: #b06e57; /* clay */
+	--color-accent-2: #5c4033; /* brown */
+	--color-nav-grad-start: #5c4033; /* brown */
+	--color-nav-grad-end: #b06e57;  /* clay */
+	--color-border: rgba(176, 110, 87, 0.35);
+	--shadow-strong: 0 20px 60px rgba(92, 64, 51, 0.25);
+	--shadow-medium: 0 8px 25px rgba(92, 64, 51, 0.25);
+	/* Additional supporting tones to enrich vintage palette */
+	--color-brown-700: #4a332a;  /* deep brown */
+	--color-brown-500: #6b4b3a;  /* warm brown */
+	--color-clay-400: #c37d66;   /* lighter clay */
+	--color-stone-300: #c8b8aa;  /* soft stone */
+	--color-sand-200: #eadfcd;   /* sand */
+	--color-success-bg: rgba(108, 192, 143, 0.15);
+	--color-success-text: #2b7a4b;
+	--color-success-border: rgba(108, 192, 143, 0.7);
+	--color-error-bg: rgba(154, 60, 60, 0.14);
+	--color-error-text: #9a3c3c;
+	--color-error-border: rgba(224, 154, 154, 0.9);
+	--color-focus-ring: rgba(176, 110, 87, 0.2);
+}
+
+body.theme-vintage {
+	--color-text: #3a2a23;
+	--color-bg: #f2e9da;            /* vintage cream */
+	--color-surface: #fffaf2;
+	--color-muted: #b7a89a;         /* stone */
+	--color-accent: #b06e57;        /* clay */
+	--color-accent-2: #5c4033;      /* brown */
+	--color-nav-grad-start: #5c4033; /* brown */
+	--color-nav-grad-end: #b06e57;   /* clay */
+	--color-border: rgba(176, 110, 87, 0.35);
+	--shadow-strong: 0 20px 60px rgba(92, 64, 51, 0.25);
+	--shadow-medium: 0 8px 25px rgba(92, 64, 51, 0.25);
+	--color-brown-700: #4a332a;
+	--color-brown-500: #6b4b3a;
+	--color-clay-400: #c37d66;
+	--color-stone-300: #c8b8aa;
+	--color-sand-200: #eadfcd;
+	--color-success-bg: rgba(108, 192, 143, 0.15);
+	--color-success-text: #2b7a4b;
+	--color-success-border: rgba(108, 192, 143, 0.7);
+	--color-error-bg: rgba(154, 60, 60, 0.14);
+	--color-error-text: #9a3c3c;
+	--color-error-border: rgba(224, 154, 154, 0.9);
+	--color-focus-ring: rgba(176, 110, 87, 0.2);
+}
+
+body.theme-vintage-dark {
+	--color-text: #f4ede1;
+	--color-bg: #18100c;             /* deeper cocoa */
+	--color-surface: #2b1b14;        /* dark walnut */
+	--color-muted: #d2c3b5;
+	--color-accent: #d1885a;         /* ambered clay */
+	--color-accent-2: #9d643f;       /* spiced cedar */
+	--color-nav-grad-start: #140c08; /* espresso */
+	--color-nav-grad-end: #5a3a2a;   /* dark roast */
+	--color-border: rgba(209, 136, 90, 0.35);
+	--shadow-strong: 0 20px 60px rgba(0, 0, 0, 0.45);
+	--shadow-medium: 0 8px 25px rgba(0, 0, 0, 0.35);
+	--color-brown-700: #f4ede1;
+	--color-brown-500: #e0c7a3;
+	--color-clay-400: #d1885a;
+	--color-stone-300: #8f7963;
+	--color-sand-200: #2b1b14;
+	--color-success-bg: rgba(108, 192, 143, 0.12);
+	--color-success-text: #b7f0cb;
+	--color-success-border: rgba(108, 192, 143, 0.5);
+	--color-error-bg: rgba(208, 130, 118, 0.12);
+	--color-error-text: #f4c3b8;
+	--color-error-border: rgba(208, 130, 118, 0.6);
+	--color-focus-ring: rgba(209, 136, 90, 0.35);
+}
+
+html, body, #root {
+	background: var(--color-bg);
+	color: var(--color-text);
+	transition: background-color 0.25s ease, color 0.25s ease;
+}

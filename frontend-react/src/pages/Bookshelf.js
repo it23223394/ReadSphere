@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getBooks } from "../services/api";
+import { Navbar } from "../components/Navbar";
 
 function Bookshelf() {
   const [books, setBooks] = useState([]);
@@ -25,26 +26,28 @@ function Bookshelf() {
   };
 
   return (
-    <div className="p-6">
+    <div>
+      <Navbar />
+      <div className="page">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold">My Bookshelf</h2>
+        <h2 className="text-2xl font-semibold heading-primary">My Bookshelf</h2>
         
         <div className="flex gap-2">
           <button
             onClick={() => downloadPdf('favorites', 'favorites.pdf')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
+            className="btn"
           >
             📥 Download Favorites
           </button>
           <button
             onClick={() => downloadPdf('top5', 'top5-books.pdf')}
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
+            className="btn btn-secondary"
           >
             ⭐ Download Top 5
           </button>
           <button
             onClick={() => downloadPdf('all', 'my-books.pdf')}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+            className="btn btn-tertiary"
           >
             📚 Download All
           </button>
@@ -53,11 +56,12 @@ function Bookshelf() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {books.map(book => (
-          <div key={book.id} className="p-4 border rounded-lg shadow">
+          <div key={book.id} className="card">
             <h3 className="font-bold">{book.title}</h3>
-            <p className="text-sm text-gray-500">{book.author}</p>
+            <p className="text-sm text-muted">{book.author}</p>
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

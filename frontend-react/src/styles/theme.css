@@ -1,0 +1,94 @@
+/* Global theme utility classes mapping to CSS variables */
+
+.page { padding: 1.5rem; }
+
+.heading-primary {
+  color: var(--color-brown-700);
+}
+
+.text-muted {
+  color: var(--color-muted);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-stone-300);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: var(--shadow-medium);
+}
+
+.btn {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-brown-500) 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  box-shadow: var(--shadow-medium);
+}
+.btn:hover { transform: translateY(-2px); opacity: 0.95; }
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--color-brown-700) 0%, var(--color-accent) 100%);
+}
+
+.btn-tertiary {
+  background: linear-gradient(135deg, var(--color-stone-300) 0%, var(--color-clay-400) 100%);
+}
+
+.text-error { color: #9a3c3c; }
+.text-info { color: var(--color-accent); }
+
+/* Segmented toggle buttons */
+.segmented {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-stone-300);
+  border-radius: 999px;
+  box-shadow: var(--shadow-medium);
+  flex-wrap: wrap;
+}
+
+.segmented-btn {
+  border: none;
+  background: transparent;
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--color-text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.segmented-btn:hover { transform: translateY(-1px); }
+
+.segmented-btn.active {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-brown-500) 100%);
+  color: #ffffff;
+  box-shadow: var(--shadow-medium);
+}
+
+/* Forms */
+.form { display: grid; gap: 14px; }
+.form-row { display: grid; gap: 8px; }
+.label { font-weight: 600; color: var(--color-text); }
+.input, .select, .number, .checkbox {
+  padding: 12px 14px;
+  border: 2px solid var(--color-stone-300);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.input:focus, .select:focus, .number:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px rgba(176, 110, 87, 0.15);
+}
+.help { font-size: 0.85rem; color: var(--color-muted); }
+.divider { height: 1px; background: var(--color-stone-300); margin: 16px 0; border-radius: 999px; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--color-sand-200); color: var(--color-brown-700); font-weight: 600; font-size: 0.8rem; }
