@@ -1,6 +1,7 @@
 package com.example.readsphere.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import java.util.List;
 
 @Entity
@@ -18,6 +19,7 @@ public class Book {
     private int pagesRead;
     private String status; // Read / In Progress / Want to Read
     private Integer rating; // 1-5 stars, optional
+    private String coverUrl; // Azure Blob URL
 
     // Many books belong to one user
     @ManyToOne
@@ -26,10 +28,12 @@ public class Book {
 
     // One book can have many notes
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<Note> notes;
 
     // One book can have many quotes
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<Quote> quotes;
 
     // Constructors
@@ -107,6 +111,14 @@ public class Book {
 
     public void setRating(Integer rating) {
         this.rating = rating;
+    }
+
+    public String getCoverUrl() {
+        return coverUrl;
+    }
+
+    public void setCoverUrl(String coverUrl) {
+        this.coverUrl = coverUrl;
     }
 
     public User getUser() {

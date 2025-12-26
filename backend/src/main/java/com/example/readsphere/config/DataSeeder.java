@@ -1,29 +1,43 @@
 package com.example.readsphere.config;
 
 import com.example.readsphere.model.Book;
+import com.example.readsphere.model.BookCatalog;
 import com.example.readsphere.model.User;
+import com.example.readsphere.repository.BookCatalogRepository;
 import com.example.readsphere.repository.BookRepository;
 import com.example.readsphere.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Configuration
 public class DataSeeder {
 
     @Bean
-    CommandLineRunner initDatabase(UserRepository userRepository, BookRepository bookRepository) {
+    CommandLineRunner initDatabase(UserRepository userRepository, 
+                                    BookRepository bookRepository,
+                                    BookCatalogRepository catalogRepository) {
         return args -> {
-            // Only seed if database is empty
-            if (userRepository.count() > 0) {
-                return;
-            }
+            try {
+                // Seed book catalog first (always check if empty)
+                if (catalogRepository.count() == 0) {
+                    seedBookCatalog(catalogRepository);
+                    System.out.println("✅ Catalog seeded successfully!");
+                }
+
+                // Only seed user data if database is empty
+                if (userRepository.count() > 0) {
+                    return;
+                }
 
             // Create a test user
             User user = new User("John Doe", "john@example.com", "password123");
             user = userRepository.save(user);
 
-            // Create sample books for the user
+            // Create sample books for the user (legacy system - keep for backward compatibility)
             Book book1 = new Book("Atomic Habits", "James Clear", "Self-Help", 320, 320, "READ");
             book1.setRating(5);
             book1.setUser(user);
@@ -67,8 +81,140 @@ public class DataSeeder {
 
             System.out.println("✅ Sample data seeded successfully!");
             System.out.println("📚 User created: " + user.getName() + " (ID: " + user.getId() + ")");
-            System.out.println("📖 Books added: 8 books");
+            System.out.println("📖 Books added: 8 user books + " + catalogRepository.count() + " catalog books");
             System.out.println("🎯 Test recommendation: GET http://localhost:8080/api/recommendations/" + user.getId());
+            System.out.println("📚 Browse catalog: GET http://localhost:8080/api/catalog");
+            } catch (Exception e) {
+                System.err.println("❌ Error seeding data: " + e.getMessage());
+                e.printStackTrace();
+            }
         };
+    }
+
+    private void seedBookCatalog(BookCatalogRepository catalogRepository) {
+        List<BookCatalog> catalog = new ArrayList<>();
+
+        // Fiction
+        catalog.add(new BookCatalog("1984", "George Orwell", "Fiction", 
+            "Dystopian novel about totalitarian surveillance and thought control.", 4.7, 328));
+        catalog.add(new BookCatalog("To Kill a Mockingbird", "Harper Lee", "Fiction",
+            "Classic story of racial injustice in the American South.", 4.8, 336));
+        catalog.add(new BookCatalog("The Great Gatsby", "F. Scott Fitzgerald", "Fiction",
+            "Jazz Age tale of wealth, love, and the American Dream.", 4.4, 180));
+        catalog.add(new BookCatalog("Pride and Prejudice", "Jane Austen", "Fiction",
+            "Romantic novel about Elizabeth Bennet and Mr. Darcy.", 4.6, 432));
+        catalog.add(new BookCatalog("The Catcher in the Rye", "J.D. Salinger", "Fiction",
+            "Coming-of-age story of teenage rebellion and alienation.", 4.0, 277));
+
+        // Fantasy
+        catalog.add(new BookCatalog("The Hobbit", "J.R.R. Tolkien", "Fantasy",
+            "Bilbo Baggins' adventure with dwarves to reclaim their mountain home.", 4.8, 310));
+        catalog.add(new BookCatalog("Harry Potter and the Sorcerer's Stone", "J.K. Rowling", "Fantasy",
+            "Young wizard discovers his magical heritage and destiny.", 4.9, 309));
+        catalog.add(new BookCatalog("The Name of the Wind", "Patrick Rothfuss", "Fantasy",
+            "A legendary hero tells his own story of magic and adventure.", 4.6, 662));
+        catalog.add(new BookCatalog("A Game of Thrones", "George R.R. Martin", "Fantasy",
+            "Political intrigue and war in the Seven Kingdoms of Westeros.", 4.7, 835));
+        catalog.add(new BookCatalog("The Way of Kings", "Brandon Sanderson", "Fantasy",
+            "Epic fantasy with unique magic systems and world-building.", 4.8, 1007));
+
+        // Sci-Fi
+        catalog.add(new BookCatalog("Dune", "Frank Herbert", "Sci-Fi",
+            "Desert planet, spice wars, and galactic politics.", 4.6, 688));
+        catalog.add(new BookCatalog("Ender's Game", "Orson Scott Card", "Sci-Fi",
+            "Child prodigy trained to fight an alien invasion.", 4.7, 324));
+        catalog.add(new BookCatalog("The Martian", "Andy Weir", "Sci-Fi",
+            "Astronaut stranded on Mars uses science to survive.", 4.8, 369));
+        catalog.add(new BookCatalog("Neuromancer", "William Gibson", "Sci-Fi",
+            "Cyberpunk classic about hackers and artificial intelligence.", 4.3, 271));
+        catalog.add(new BookCatalog("Foundation", "Isaac Asimov", "Sci-Fi",
+            "Mathematical prediction of the fall of a galactic empire.", 4.5, 255));
+
+        // Mystery/Thriller
+        catalog.add(new BookCatalog("The Girl with the Dragon Tattoo", "Stieg Larsson", "Mystery",
+            "Journalist and hacker investigate a decades-old disappearance.", 4.5, 465));
+        catalog.add(new BookCatalog("Gone Girl", "Gillian Flynn", "Mystery",
+            "Wife disappears on anniversary, husband becomes prime suspect.", 4.2, 422));
+        catalog.add(new BookCatalog("The Da Vinci Code", "Dan Brown", "Mystery",
+            "Symbologist uncovers conspiracy hidden in religious art.", 4.3, 454));
+        catalog.add(new BookCatalog("Sherlock Holmes: The Complete Stories", "Arthur Conan Doyle", "Mystery",
+            "Classic detective solves seemingly impossible crimes.", 4.7, 1122));
+        catalog.add(new BookCatalog("And Then There Were None", "Agatha Christie", "Mystery",
+            "Ten strangers trapped on island, murdered one by one.", 4.6, 272));
+
+        // Self-Help
+        catalog.add(new BookCatalog("The 7 Habits of Highly Effective People", "Stephen Covey", "Self-Help",
+            "Principles for personal and professional effectiveness.", 4.5, 381));
+        catalog.add(new BookCatalog("How to Win Friends and Influence People", "Dale Carnegie", "Self-Help",
+            "Timeless advice on relationships and communication.", 4.4, 288));
+        catalog.add(new BookCatalog("Atomic Habits", "James Clear", "Self-Help",
+            "Proven framework for improving habits and achieving goals.", 4.8, 320));
+        catalog.add(new BookCatalog("Deep Work", "Cal Newport", "Self-Help",
+            "Rules for focused success in a distracted world.", 4.6, 296));
+        catalog.add(new BookCatalog("Mindset", "Carol Dweck", "Self-Help",
+            "Growth mindset vs. fixed mindset in learning and success.", 4.5, 320));
+
+        // Business/Finance
+        catalog.add(new BookCatalog("The Psychology of Money", "Morgan Housel", "Finance",
+            "Timeless lessons on wealth, greed, and happiness.", 4.7, 256));
+        catalog.add(new BookCatalog("Rich Dad Poor Dad", "Robert Kiyosaki", "Finance",
+            "What the wealthy teach their kids about money.", 4.3, 336));
+        catalog.add(new BookCatalog("The Intelligent Investor", "Benjamin Graham", "Finance",
+            "Classic guide to value investing and financial wisdom.", 4.6, 640));
+        catalog.add(new BookCatalog("Thinking, Fast and Slow", "Daniel Kahneman", "Business",
+            "Two systems of thought: intuitive and deliberate.", 4.4, 499));
+        catalog.add(new BookCatalog("Zero to One", "Peter Thiel", "Business",
+            "Notes on startups and building the future.", 4.5, 224));
+
+        // Biography/Memoir
+        catalog.add(new BookCatalog("Steve Jobs", "Walter Isaacson", "Biography",
+            "Authorized biography of Apple's visionary co-founder.", 4.6, 656));
+        catalog.add(new BookCatalog("Educated", "Tara Westover", "Memoir",
+            "Woman escapes survivalist upbringing through education.", 4.7, 334));
+        catalog.add(new BookCatalog("Born a Crime", "Trevor Noah", "Memoir",
+            "Growing up in apartheid South Africa as a mixed-race child.", 4.8, 304));
+        catalog.add(new BookCatalog("The Diary of a Young Girl", "Anne Frank", "Biography",
+            "Jewish girl's diary while hiding from Nazis in Amsterdam.", 4.7, 283));
+        catalog.add(new BookCatalog("Becoming", "Michelle Obama", "Memoir",
+            "Former First Lady's journey from South Side Chicago to the White House.", 4.7, 448));
+
+        // Science
+        catalog.add(new BookCatalog("Sapiens", "Yuval Noah Harari", "Science",
+            "A brief history of humankind from Stone Age to modern age.", 4.6, 443));
+        catalog.add(new BookCatalog("A Brief History of Time", "Stephen Hawking", "Science",
+            "Exploration of cosmology, black holes, and the universe.", 4.4, 256));
+        catalog.add(new BookCatalog("The Selfish Gene", "Richard Dawkins", "Science",
+            "Gene-centered view of evolution and natural selection.", 4.5, 360));
+        catalog.add(new BookCatalog("Cosmos", "Carl Sagan", "Science",
+            "Exploration of space, time, and the human condition.", 4.7, 365));
+        catalog.add(new BookCatalog("The Origin of Species", "Charles Darwin", "Science",
+            "Foundational work on evolution and natural selection.", 4.4, 502));
+
+        // Romance
+        catalog.add(new BookCatalog("The Notebook", "Nicholas Sparks", "Romance",
+            "Elderly man reads to his wife from notebook about their love story.", 4.4, 227));
+        catalog.add(new BookCatalog("Me Before You", "Jojo Moyes", "Romance",
+            "Caregiver falls for paralyzed man with different views on life.", 4.5, 369));
+        catalog.add(new BookCatalog("The Time Traveler's Wife", "Audrey Niffenegger", "Romance",
+            "Love story complicated by involuntary time travel.", 4.3, 528));
+        catalog.add(new BookCatalog("Outlander", "Diana Gabaldon", "Romance",
+            "World War II nurse transported to 18th century Scotland.", 4.6, 850));
+        catalog.add(new BookCatalog("The Fault in Our Stars", "John Green", "Romance",
+            "Two cancer patients fall in love while confronting mortality.", 4.5, 313));
+
+        // Horror
+        catalog.add(new BookCatalog("The Shining", "Stephen King", "Horror",
+            "Family isolated in haunted hotel during winter.", 4.5, 447));
+        catalog.add(new BookCatalog("Dracula", "Bram Stoker", "Horror",
+            "Classic vampire tale of Count Dracula's reign of terror.", 4.3, 418));
+        catalog.add(new BookCatalog("Frankenstein", "Mary Shelley", "Horror",
+            "Scientist creates life but can't control his monstrous creation.", 4.2, 280));
+        catalog.add(new BookCatalog("It", "Stephen King", "Horror",
+            "Children battle shape-shifting evil entity in their town.", 4.6, 1138));
+        catalog.add(new BookCatalog("The Haunting of Hill House", "Shirley Jackson", "Horror",
+            "Paranormal investigators study supposedly haunted mansion.", 4.4, 246));
+
+        catalogRepository.saveAll(catalog);
+        System.out.println("📚 Seeded " + catalog.size() + " books into catalog");
     }
 }
