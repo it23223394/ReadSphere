@@ -11,6 +11,7 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import Tracking from "./pages/Tracking";
 import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import "./App.css";
@@ -79,6 +80,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/tracking" 
+            element={
+              <ProtectedRoute>
+                <Tracking />
               </ProtectedRoute>
             } 
           />

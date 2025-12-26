@@ -29,6 +29,12 @@
 	--color-error-text: #9a3c3c;
 	--color-error-border: rgba(224, 154, 154, 0.9);
 	--color-focus-ring: rgba(176, 110, 87, 0.2);
+
+	/* Bookshelf custom button colors (not used elsewhere) */
+	--color-toolbar-start: #6fa36f; /* moss green */
+	--color-toolbar-end: #4e7a4e;
+	--color-item-start: #6b7ea6;   /* slate blue */
+	--color-item-end: #4b5d8a;
 }
 
 body.theme-vintage {
@@ -55,6 +61,12 @@ body.theme-vintage {
 	--color-error-text: #9a3c3c;
 	--color-error-border: rgba(224, 154, 154, 0.9);
 	--color-focus-ring: rgba(176, 110, 87, 0.2);
+
+	/* Bookshelf custom button colors */
+	--color-toolbar-start: #6fa36f;
+	--color-toolbar-end: #4e7a4e;
+	--color-item-start: #6b7ea6;
+	--color-item-end: #4b5d8a;
 }
 
 body.theme-vintage-dark {
@@ -81,6 +93,12 @@ body.theme-vintage-dark {
 	--color-error-text: #f4c3b8;
 	--color-error-border: rgba(208, 130, 118, 0.6);
 	--color-focus-ring: rgba(209, 136, 90, 0.35);
+
+	/* Bookshelf custom button colors - adjusted for dark */
+	--color-toolbar-start: #8bc48b;
+	--color-toolbar-end: #5c9a5c;
+	--color-item-start: #8aa6d1;
+	--color-item-end: #5a76a5;
 }
 
 html, body, #root {
