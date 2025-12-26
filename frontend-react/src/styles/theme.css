@@ -39,6 +39,15 @@
   background: linear-gradient(135deg, var(--color-stone-300) 0%, var(--color-clay-400) 100%);
 }
 
+/* New button styles for Bookshelf */
+.btn-toolbar {
+  background: linear-gradient(135deg, var(--color-toolbar-start) 0%, var(--color-toolbar-end) 100%);
+}
+
+.btn-item {
+  background: linear-gradient(135deg, var(--color-item-start) 0%, var(--color-item-end) 100%);
+}
+
 .text-error { color: #9a3c3c; }
 .text-info { color: var(--color-accent); }
 
