@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme variables: Vintage light and dark palettes */
+/* Default values (overridden by theme-specific classes on body) */
+:root {
+	--color-text: #2f3a38;
+	--color-bg: #E2D7A7;           /* Custom background */
+	--color-surface: #ffffff;      /* White instead of Arctic */
+	--color-muted: #cfb97e;        /* Sage */
+	--color-accent: #e3c4a5;       /* Lace (primary) */
+	--color-accent-2: #cfb97e;     /* Sage for secondary / headers */
+	--color-nav-grad-start: #e3c4a5;
+	--color-nav-grad-end: #e3c4a5;
+	--color-border: rgba(207, 185, 126, 0.35);
+	--shadow-strong: 0 20px 60px rgba(47, 58, 56, 0.18);
+	--shadow-medium: 0 8px 25px rgba(47, 58, 56, 0.15);
+	/* Additional supporting tones mapped to palette */
+	--color-brown-700: #2f3a38;
+	--color-brown-500: #c04a33;    /* deeper coral for contrast */
+	--color-clay-400: #e3c4a5;     /* Lace */
+	--color-stone-300: #f3f1eb;    /* light neutral for borders */
+	--color-sand-200: #e3c4a5;     /* Lace */
+	--color-success-bg: rgba(207, 185, 126, 0.2);
+	--color-success-text: #4f6a66;
+	--color-success-border: rgba(207, 185, 126, 0.7);
+	--color-error-bg: rgba(253, 193, 180, 0.2);
+	--color-error-text: #c04a33;
+	--color-error-border: rgba(253, 193, 180, 0.65);
+	--color-focus-ring: rgba(253, 193, 180, 0.25);
+
+	/* Bookshelf custom button colors (not used elsewhere) */
+	--color-toolbar-start: #e3c4a5;
+	--color-toolbar-end: #e3c4a5;
+	--color-item-start: #cfb97e;
+	--color-item-end: #cfb97e;
+}
+
+body.theme-vintage {
+	--color-text: #2f3a38;
+	--color-bg: #E2D7A7;
+	--color-surface: #ffffff;
+	--color-muted: #cfb97e;
+	--color-accent: #e3c4a5;
+	--color-accent-2: #cfb97e;
+	--color-nav-grad-start: #e3c4a5;
+	--color-nav-grad-end: #e3c4a5;
+	--color-border: rgba(207, 185, 126, 0.35);
+	--shadow-medium: 0 8px 25px rgba(47, 58, 56, 0.15);
+	--color-brown-700: #2f3a38;
+	--color-brown-500: #c04a33;
+	--color-clay-400: #e3c4a5;
+	--color-sand-200: #e3c4a5;
+	--color-success-bg: rgba(207, 185, 126, 0.2);
+	--color-success-text: #4f6a66;
+	--color-success-border: rgba(207, 185, 126, 0.7);
+	--color-error-bg: rgba(253, 193, 180, 0.2);
+	--color-error-text: #c04a33;
+	--color-error-border: rgba(253, 193, 180, 0.65);
+	--color-focus-ring: rgba(253, 193, 180, 0.25);
+	--color-toolbar-start: #e3c4a5;
+	--color-toolbar-end: #e3c4a5;
+	--color-item-start: #cfb97e;
+	--color-item-end: #cfb97e;
+}
+
+body.theme-vintage-dark {
+	--color-text: #f7efe6;
+	--color-bg: #1f2423;
+	--color-surface: #2c3432;
+	--color-muted: #a3b8b3;
+	--color-accent: #e3c4a5;
+	--color-accent-2: #cfb97e;
+	--color-nav-grad-start: #2f3a38;
+	--color-nav-grad-end: #e3c4a5;
+	--color-border: rgba(207, 185, 126, 0.28);
+	--shadow-medium: 0 8px 25px rgba(0, 0, 0, 0.35);
+	--color-brown-700: #f7efe6;
+	--color-brown-500: #cfb97e;
+	--color-clay-400: #e3c4a5;
+	--color-sand-200: #2c3432;
+	--color-success-bg: rgba(207, 185, 126, 0.18);
+	--color-success-text: #f7efe6;
+	--color-success-border: rgba(207, 185, 126, 0.55);
+	--color-error-bg: rgba(253, 193, 180, 0.18);
+	--color-error-text: #ffd3c9;
+	--color-error-border: rgba(253, 193, 180, 0.55);
+	--color-focus-ring: rgba(253, 193, 180, 0.35);
+	--color-toolbar-start: #e3c4a5;
+	--color-toolbar-end: #e3c4a5;
+	--color-item-start: #cfb97e;
+	--color-item-end: #cfb97e;
+}
+
+html, body, #root {
+	background: var(--color-bg);
+	color: var(--color-text);
+	transition: background-color 0.25s ease, color 0.25s ease;
+}
