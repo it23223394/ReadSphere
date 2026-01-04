@@ -6,16 +6,18 @@ public class AuthResponse {
     private String refreshToken;
     private String message;
     private String role;
+    private String theme;
 
     // Constructors
     public AuthResponse() {}
 
-    public AuthResponse(Long userId, String token, String refreshToken, String message, String role) {
+    public AuthResponse(Long userId, String token, String refreshToken, String message, String role, String theme) {
         this.userId = userId;
         this.token = token;
         this.refreshToken = refreshToken;
         this.message = message;
         this.role = role;
+        this.theme = theme;
     }
 
     // Getters and Setters
@@ -57,5 +59,13 @@ public class AuthResponse {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getTheme() {
+        return theme;
+    }
+
+    public void setTheme(String theme) {
+        this.theme = theme;
     }
 }

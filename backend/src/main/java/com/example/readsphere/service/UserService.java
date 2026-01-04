@@ -117,7 +117,8 @@ public class UserService {
                 token,
                 refreshToken,
                 "User registered successfully",
-                savedUser.getRole().name()
+                savedUser.getRole().name(),
+                savedUser.getTheme() != null ? savedUser.getTheme() : "light"
         );
     }
 
@@ -157,7 +158,8 @@ public class UserService {
                 token,
                 refreshToken,
                 "Login successful",
-                user.getRole().name()
+                user.getRole().name(),
+                user.getTheme() != null ? user.getTheme() : "light"
         );
     }
 

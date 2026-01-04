@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import Dashboard from "./pages/Dashboard";
 import Bookshelf from "./pages/Bookshelf";
 import NotesQuotes from "./pages/NotesQuotes";
@@ -9,7 +10,6 @@ import RegisterPage from "./pages/RegisterPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
-import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Tracking from "./pages/Tracking";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -22,10 +22,17 @@ import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { UserRoute } from "./components/UserRoute";
 import { AdminRoute } from "./components/AdminRoute";
+import { loadTheme, applyTheme } from "./utils/theme";
 import "./App.css";
 
 function App() {
   useScrollReveal();
+
+  // Load and apply saved theme on app startup
+  useEffect(() => {
+    const savedTheme = loadTheme();
+    applyTheme(savedTheme);
+  }, []);
 
   return (
     <Router>
@@ -124,7 +131,7 @@ function App() {
             path="/profile" 
             element={
               <UserRoute>
-                <Profile />
+                <Navigate to="/settings" replace />
               </UserRoute>
             } 
           />

@@ -1,22 +1,28 @@
 package com.example.readsphere.security;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
 
-    @Value("${app.jwtSecret:readsphere-secret-key-super-secure-change-in-production}")
+    @Value("${app.jwtSecret}")
     private String jwtSecret;
 
     @Value("${app.jwtExpirationInMs:86400000}")  // 24 hours
-    private int jwtExpirationInMs;
+    private long jwtExpirationInMs;
 
     @Value("${app.jwtRefreshExpirationInMs:604800000}")  // 7 days
-    private int jwtRefreshExpirationInMs;
+    private long jwtRefreshExpirationInMs;
+
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    }
 
     // Generate JWT token from userId and role
     public String generateToken(Long userId, String role) {
@@ -24,11 +30,11 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
         return Jwts.builder()
-                .setSubject(String.valueOf(userId))
+                .subject(String.valueOf(userId))
                 .claim("role", role)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -43,19 +49,20 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + jwtRefreshExpirationInMs);
 
         return Jwts.builder()
-                .setSubject(String.valueOf(userId))
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .subject(String.valueOf(userId))
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
                 .compact();
     }
 
     // Get userId from token
     public Long getUserIdFromToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(jwtSecret)
-                .parseClaimsJws(token)
-                .getBody();
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
 
         return Long.parseLong(claims.getSubject());
     }
@@ -63,9 +70,10 @@ public class JwtTokenProvider {
     // Get role from token
     public String getRoleFromToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(jwtSecret)
-                .parseClaimsJws(token)
-                .getBody();
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
 
         return claims.get("role", String.class);
     }
@@ -74,8 +82,9 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                    .setSigningKey(jwtSecret)
-                    .parseClaimsJws(token);
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token);
             return true;
         } catch (JwtException ex) {
             System.err.println("Invalid JWT: " + ex.getMessage());

@@ -7,7 +7,9 @@ import {
   addReadingLog,
   getReadingSummary,
   getReadingStreak,
-  getReadingTimeline
+  getReadingTimeline,
+  getSettings,
+  updateSettings
 } from '../services/api';
 import { Line, Bar } from 'react-chartjs-2';
 import {
@@ -25,12 +27,17 @@ export default function Tracking() {
   const [summary, setSummary] = useState([]);
   const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
   const [timeline, setTimeline] = useState([]);
+  const [settings, setSettings] = useState(null);
+  const [savingGoals, setSavingGoals] = useState(false);
+  const [goalsMsg, setGoalsMsg] = useState('');
+  const [goalsError, setGoalsError] = useState('');
 
   useEffect(() => {
     getProfile().then(p => {
       const uid = p?.id || p?.user?.id || 1;
       setUserId(uid);
     }).catch(() => setUserId(1));
+    getSettings().then(setSettings).catch(() => setSettings({}));
   }, []);
 
   useEffect(() => {
@@ -67,6 +74,27 @@ export default function Tracking() {
     setBooks(updatedBooks);
   };
 
+  const handleSaveGoals = async (e) => {
+    e.preventDefault();
+    if (!settings) return;
+    setGoalsError('');
+    setGoalsMsg('');
+    setSavingGoals(true);
+    try {
+      const payload = {
+        readingGoalBooksPerMonth: settings.readingGoalBooksPerMonth ?? null,
+        readingGoalPagesPerDay: settings.readingGoalPagesPerDay ?? null
+      };
+      const data = await updateSettings(payload);
+      setSettings({ ...settings, ...data });
+      setGoalsMsg(data.message || 'Goals updated');
+    } catch (err) {
+      setGoalsError(err.message);
+    } finally {
+      setSavingGoals(false);
+    }
+  };
+
   const lineData = useMemo(() => ({
     labels: summary.map(d => d.date.slice(5)),
     datasets: [
@@ -100,6 +128,44 @@ export default function Tracking() {
       <div className="page">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-semibold heading-primary">Reading Progress Tracker</h2>
+        </div>
+
+        <div className="card mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold">Reading Goals</h3>
+            <span className="badge">Motivation</span>
+          </div>
+          <form className="grid grid-cols-1 md:grid-cols-3 gap-2" onSubmit={handleSaveGoals}>
+            <label className="form-row" style={{ marginBottom: 0 }}>
+              <span className="label">Books per month</span>
+              <input
+                className="number"
+                type="number"
+                min="0"
+                value={settings?.readingGoalBooksPerMonth ?? ''}
+                onChange={(e)=>setSettings({ ...settings, readingGoalBooksPerMonth: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
+              />
+              <span className="help">Set a realistic monthly target.</span>
+            </label>
+            <label className="form-row" style={{ marginBottom: 0 }}>
+              <span className="label">Pages per day</span>
+              <input
+                className="number"
+                type="number"
+                min="0"
+                value={settings?.readingGoalPagesPerDay ?? ''}
+                onChange={(e)=>setSettings({ ...settings, readingGoalPagesPerDay: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
+              />
+              <span className="help">Consistency beats intensity.</span>
+            </label>
+            <div className="flex items-end">
+              <button className="btn" type="submit" disabled={savingGoals}>
+                {savingGoals ? 'Saving…' : 'Save Goals'}
+              </button>
+            </div>
+          </form>
+          {goalsError && <div className="error-message mt-2" role="alert">{goalsError}</div>}
+          {goalsMsg && <div className="success-message mt-2">{goalsMsg}</div>}
         </div>
 
         <div className="card mb-4">

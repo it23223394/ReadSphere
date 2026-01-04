@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { applyTheme } from '../utils/theme';
 
 const AuthContext = createContext();
 
@@ -6,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [role, setRole] = useState(null);
+  const [theme, setTheme] = useState('light');
   const [loading, setLoading] = useState(true);
 
   // Initialize from localStorage on mount
@@ -33,11 +35,15 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = (userId, userRole = 'USER') => {
+  const login = (userId, userRole = 'USER', userTheme = 'light') => {
     const savedToken = localStorage.getItem('token');
     setToken(savedToken);
     setUser({ id: userId });
     setRole(userRole);
+    setTheme(userTheme);
+    // Apply the theme
+    const themeClass = userTheme === 'dark' ? 'theme-vintage-dark' : 'theme-vintage';
+    applyTheme(themeClass);
   };
 
   const logout = () => {
@@ -48,6 +54,15 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setRole(null);
+    setTheme('light');
+    // Reset to default theme on logout
+    applyTheme('theme-vintage');
+  };
+
+  const updateTheme = (newTheme) => {
+    setTheme(newTheme);
+    const themeClass = newTheme === 'dark' ? 'theme-vintage-dark' : 'theme-vintage';
+    applyTheme(themeClass);
   };
 
   const isAuthenticated = () => {
@@ -62,9 +77,11 @@ export const AuthProvider = ({ children }) => {
     user,
     token,
     role,
+    theme,
     loading,
     login,
     logout,
+    updateTheme,
     isAuthenticated,
     isAdmin
   };

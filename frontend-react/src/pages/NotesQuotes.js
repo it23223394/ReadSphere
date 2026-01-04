@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
+import Modal from '../components/Modal';
 import {
   getBooksByUser, getNotesByBook, addNote, editNote, deleteNoteApi,
   uploadNoteImage, setNoteTags, searchNotes,
@@ -213,10 +214,10 @@ function NotesQuotes() {
       if (newQuoteImage) {
         try {
           const uploadResponse = await uploadQuoteImage(newQuote.id, newQuoteImage);
-          newQuote.imageUrl = uploadResponse?.imageUrl || URL.createObjectURL(newQuoteImage);
+          // Backend returns the updated Quote object with imageUrl
+          newQuote.imageUrl = uploadResponse?.imageUrl;
         } catch (imgErr) {
           console.warn('Image upload failed, but quote was saved:', imgErr);
-          newQuote.imageUrl = newQuote.imageUrl || newQuoteImagePreview || URL.createObjectURL(newQuoteImage);
         }
       }
       
@@ -250,11 +251,10 @@ function NotesQuotes() {
       if (editingQuoteImage) {
         try {
           const uploadResponse = await uploadQuoteImage(quote.id, editingQuoteImage);
-          updatedImageUrl = uploadResponse?.imageUrl || updatedImageUrl || URL.createObjectURL(editingQuoteImage);
+          // Backend returns the updated Quote object with imageUrl
+          updatedImageUrl = uploadResponse?.imageUrl;
         } catch (imgErr) {
           console.warn('Image upload failed, but quote was updated:', imgErr);
-          // fall back to local preview so the user still sees the image
-          updatedImageUrl = updatedImageUrl || editingQuoteImagePreview || URL.createObjectURL(editingQuoteImage);
         }
       }
       
@@ -367,116 +367,128 @@ function NotesQuotes() {
           </button>
         </div>
 
-        {/* Add Note Form */}
-        {showAddNoteForm && (
-          <div className="form-card mb-4">
-            <h3 className="font-semibold mb-3">Add New Note</h3>
-            <select
-              value={newNoteBook}
-              onChange={(e) => setNewNoteBook(e.target.value)}
-              className="form-input mb-2"
-            >
-              <option value="">Select Book...</option>
-              {books.map(book => (
-                <option key={book.id} value={book.id}>
-                  {book.title}
-                </option>
-              ))}
-            </select>
-            <textarea
-              value={newNoteText}
-              onChange={(e) => setNewNoteText(e.target.value)}
-              placeholder="Write your note..."
-              className="form-input mb-2"
-              rows="4"
-            />
-            <input
-              type="text"
-              value={newNoteTags}
-              onChange={(e) => setNewNoteTags(e.target.value)}
-              placeholder="Tags (comma-separated, e.g. inspiring, important)"
-              className="form-input mb-3"
-            />
-            <div className="form-buttons">
-              <button onClick={handleAddNote} className="btn-item">Save Note</button>
-              <button onClick={() => setShowAddNoteForm(false)} className="btn-secondary">Cancel</button>
+        {/* Add Note Modal */}
+        <Modal
+          open={showAddNoteForm}
+          title="Add New Note"
+          onClose={() => setShowAddNoteForm(false)}
+          footer={
+            <>
+              <button onClick={handleAddNote} className="btn btn-item">Save Note</button>
+              <button onClick={() => setShowAddNoteForm(false)} className="btn btn-secondary">Cancel</button>
+            </>
+          }
+        >
+          <div className="form space-y-4">
+            <div>
+              <label className="label">Select Book</label>
+              <select
+                value={newNoteBook}
+                onChange={(e) => setNewNoteBook(e.target.value)}
+                className="form-input"
+              >
+                <option value="">Select Book...</option>
+                {books.map(book => (
+                  <option key={book.id} value={book.id}>
+                    {book.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Note</label>
+              <textarea
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                placeholder="Write your note..."
+                className="form-input"
+                rows="5"
+              />
+            </div>
+            <div>
+              <label className="label">Tags (optional)</label>
+              <input
+                type="text"
+                value={newNoteTags}
+                onChange={(e) => setNewNoteTags(e.target.value)}
+                placeholder="Tags (comma-separated, e.g. inspiring, important)"
+                className="form-input"
+              />
             </div>
           </div>
-        )}
+        </Modal>
 
-        {/* Add Quote Form */}
-        {showAddQuoteForm && (
-          <div className="form-card mb-4">
-            <h3 className="font-semibold mb-3">✨ Add New Quote</h3>
-            <select
-              value={newQuoteBook}
-              onChange={(e) => setNewQuoteBook(e.target.value)}
-              className="form-input mb-2"
-            >
-              <option value="">Select Book...</option>
-              {books.map(book => (
-                <option key={book.id} value={book.id}>
-                  {book.title}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              value={newQuotePageNum}
-              onChange={(e) => setNewQuotePageNum(e.target.value)}
-              placeholder="Page number"
-              className="form-input mb-3"
-              min="1"
-            />
-
-            {/* Optional Image Upload */}
-            <div className="image-upload-box mb-3">
-              <label htmlFor="quoteImageInput" className="image-upload-label">
-                {newQuoteImagePreview ? (
-                  <>
-                    <img src={newQuoteImagePreview} alt="preview" className="image-preview" />
-                    <div className="upload-text">Click to change</div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-3xl mb-2">📸</div>
-                    <div className="upload-text">Click to upload screenshot (optional)</div>
-                    <div className="text-xs text-muted">JPG, PNG up to 10MB</div>
-                  </>
-                )}
-              </label>
+        {/* Add Quote Modal */}
+        <Modal
+          open={showAddQuoteForm}
+          title="✨ Add New Quote"
+          onClose={() => setShowAddQuoteForm(false)}
+          footer={
+            <>
+              <button onClick={handleAddQuote} className="btn btn-item">Save Quote</button>
+              <button onClick={() => setShowAddQuoteForm(false)} className="btn btn-secondary">Cancel</button>
+            </>
+          }
+        >
+          <div className="form space-y-4">
+            <div>
+              <label className="label">Select Book</label>
+              <select
+                value={newQuoteBook}
+                onChange={(e) => setNewQuoteBook(e.target.value)}
+                className="form-input"
+              >
+                <option value="">Select Book...</option>
+                {books.map(book => (
+                  <option key={book.id} value={book.id}>
+                    {book.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Page Number</label>
               <input
-                id="quoteImageInput"
+                type="number"
+                value={newQuotePageNum}
+                onChange={(e) => setNewQuotePageNum(e.target.value)}
+                placeholder="Page number"
+                className="form-input"
+                min="1"
+              />
+            </div>
+            <div>
+              <label className="label">Quote</label>
+              <textarea
+                value={newQuoteText}
+                onChange={(e) => setNewQuoteText(e.target.value)}
+                placeholder="Type the quote..."
+                className="form-input"
+                rows="4"
+              />
+            </div>
+            <div>
+              <label className="label">Or Upload Quote Image</label>
+              <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    const file = e.target.files[0];
+                  const file = e.target.files?.[0];
+                  if (file) {
                     setNewQuoteImage(file);
                     setNewQuoteImagePreview(URL.createObjectURL(file));
                   }
                 }}
-                style={{ display: 'none' }}
+                className="form-input"
               />
-            </div>
-
-            <textarea
-              value={newQuoteText}
-              onChange={(e) => setNewQuoteText(e.target.value)}
-              placeholder="Type the quote text (or just upload an image)"
-              className="form-input mb-3"
-              rows="3"
-            />
-            <div className="form-buttons">
-              <button onClick={handleAddQuote} className="btn-item">Save Quote</button>
-              <button onClick={() => {
-                setShowAddQuoteForm(false);
-                setNewQuoteImage(null);
-                setNewQuoteImagePreview(null);
-              }} className="btn-secondary">Cancel</button>
+              {newQuoteImagePreview && (
+                <div className="mt-2">
+                  <img src={newQuoteImagePreview} alt="Preview" className="max-h-32 rounded" />
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </Modal>
 
         {/* Notes List */}
         {tab === 'notes' && (

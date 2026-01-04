@@ -8,7 +8,7 @@
 	--color-text: #2f3a38;
 	--color-bg: #E2D7A7;           /* Custom background */
 	--color-surface: #ffffff;      /* White instead of Arctic */
-	--color-muted: #cfb97e;        /* Sage */
+	--color-muted: #6b5d3a;        /* Darker for better readability */
 	--color-accent: #e3c4a5;       /* Lace (primary) */
 	--color-accent-2: #cfb97e;     /* Sage for secondary / headers */
 	--color-nav-grad-start: #e3c4a5;
@@ -41,7 +41,7 @@ body.theme-vintage {
 	--color-text: #2f3a38;
 	--color-bg: #E2D7A7;
 	--color-surface: #ffffff;
-	--color-muted: #cfb97e;
+	--color-muted: #6b5d3a;
 	--color-accent: #e3c4a5;
 	--color-accent-2: #cfb97e;
 	--color-nav-grad-start: #e3c4a5;

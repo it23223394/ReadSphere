@@ -38,8 +38,9 @@ function AdminRegisterPage() {
       localStorage.setItem('userId', response.userId);
       localStorage.setItem('role', response.role);
       
-      // Update auth context
-      login(response.userId, response.role);
+      // Update auth context with theme
+      const userTheme = response.theme || 'light';
+      login(response.userId, response.role, userTheme);
       
       // Navigate to admin dashboard
       navigate('/admin/dashboard');

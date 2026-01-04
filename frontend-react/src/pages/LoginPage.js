@@ -14,11 +14,9 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoError, setVideoError] = useState(false);
 
   const publicUrl = process.env.PUBLIC_URL || '';
-  const videoSrc = `${publicUrl}/videos/books-falling.mp4.mp4`;
-  const posterSrc = `${publicUrl}/videos/books-falling.jpg`;
+  const bgImageSrc = `${publicUrl}/images/1.webp`;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -61,6 +59,7 @@ const LoginPage = () => {
       };
 
       const jwtRole = decodeRoleFromToken(data.token) || data.role || 'USER';
+      const userTheme = data.theme || 'light';
 
       // Store auth data with decoded role
       localStorage.setItem('token', data.token);
@@ -69,7 +68,7 @@ const LoginPage = () => {
       localStorage.setItem('role', jwtRole);
 
       // Use AuthContext login function to update global state
-      login(data.userId, jwtRole);
+      login(data.userId, jwtRole, userTheme);
 
       setSuccess('Login successful! Redirecting...');
       setTimeout(() => {
@@ -89,33 +88,15 @@ const LoginPage = () => {
 
   return (
     <div className="auth-container">
-      {/* Video Background */}
-      <video
-        key={videoSrc}
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        className="video-background"
-        poster={posterSrc}
-        onLoadedData={() => setVideoLoaded(true)}
-        onError={(e) => {
-          console.error('Background video failed to load:', videoSrc, e);
-          setVideoError(true);
-        }}
-      >
-        <source src={videoSrc} type="video/mp4" />
-      </video>
+      {/* Image Background */}
+      <img src={bgImageSrc} alt="background" className="video-background" />
       <div className="video-overlay"></div>
 
       <div className="auth-card">
         <h1>Welcome Back</h1>
         <p className="auth-subtitle">Login to your ReadSphere account</p>
-        {/* Optional tiny status hint for debugging only; remove if undesired */}
-        {videoError && (
-          <div className="error-message">Background video failed to load. Check /public/videos/books-falling.mp4</div>
-        )}
+
+
 
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}

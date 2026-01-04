@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AdminNavbar } from '../components/AdminNavbar';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { getAdminAnalyticsOverview, getAdminAnalyticsReading } from '../services/api';
+import { getAdminAnalyticsOverview, getAdminAnalyticsReading, getAdminAnalyticsCatalog } from '../services/api';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -22,6 +22,7 @@ function AdminAnalytics() {
   const navigate = useNavigate();
   const [overview, setOverview] = useState(null);
   const [reading, setReading] = useState(null);
+  const [catalog, setCatalog] = useState(null);
   const [range, setRange] = useState('weekly');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,12 +40,14 @@ function AdminAnalytics() {
     try {
       setLoading(true);
       setError('');
-      const [ov, rd] = await Promise.all([
+      const [ov, rd, cat] = await Promise.all([
         getAdminAnalyticsOverview(),
-        getAdminAnalyticsReading(range)
+        getAdminAnalyticsReading(range),
+        getAdminAnalyticsCatalog()
       ]);
       setOverview(ov);
       setReading(rd);
+      setCatalog(cat);
     } catch (err) {
       setError(err.message || 'Failed to load analytics');
     } finally {
@@ -103,6 +106,29 @@ function AdminAnalytics() {
     };
   };
 
+  const catalogGenreData = () => {
+    if (!catalog?.genreCount) return null;
+    const labels = Object.keys(catalog.genreCount);
+    const data = Object.values(catalog.genreCount);
+    const colors = ['#d4a574', '#9d6f47', '#b8825e', '#7a5635', '#f0dcc8', '#c29968'];
+    return {
+      labels,
+      datasets: [{
+        label: 'Books by Genre',
+        data,
+        backgroundColor: labels.map((_, i) => colors[i % colors.length])
+      }]
+    };
+  };
+
+  const getFilteredGenreRatings = () => {
+    if (!catalog?.genreAvgRating) return {};
+    // Filter out genres with 0.0 rating
+    return Object.fromEntries(
+      Object.entries(catalog.genreAvgRating).filter(([_, rating]) => rating > 0)
+    );
+  };
+
   return (
     <>
       <AdminNavbar />
@@ -137,6 +163,33 @@ function AdminAnalytics() {
                   </div>
                   <div>
                     {genreDoughnutData() ? <Doughnut data={genreDoughnutData()} /> : <div className="text-center">No genre data</div>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="users-section" style={{ marginTop: '30px' }}>
+                <h2>Catalog Analytics</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'start' }}>
+                  <div>
+                    {catalogGenreData() ? <Bar data={catalogGenreData()} /> : <div className="text-center">No catalog data</div>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    {catalog && (
+                      <div style={{ 
+                        padding: '25px 35px', 
+                        backgroundColor: '#f5e6d3', 
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        display: 'inline-block',
+                        minWidth: '250px'
+                      }}>
+                        <h3 style={{ margin: '0 0 15px 0', color: '#5a3e2b', fontSize: '18px' }}>Catalog Summary</h3>
+                        <div style={{ fontSize: '15px', lineHeight: '1.8' }}>
+                          <p style={{ margin: '8px 0' }}><strong style={{ color: '#5a3e2b' }}>Total Books:</strong> <span style={{ color: '#8c5f3b', fontSize: '17px', fontWeight: '600' }}>{catalog.totalBooks}</span></p>
+                          <p style={{ margin: '8px 0' }}><strong style={{ color: '#5a3e2b' }}>Total Genres:</strong> <span style={{ color: '#8c5f3b', fontSize: '17px', fontWeight: '600' }}>{catalog.totalGenres}</span></p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

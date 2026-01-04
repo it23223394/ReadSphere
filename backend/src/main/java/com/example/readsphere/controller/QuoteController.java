@@ -5,9 +5,11 @@ import com.example.readsphere.model.Quote;
 import com.example.readsphere.repository.BookRepository;
 import com.example.readsphere.repository.QuoteRepository;
 import com.example.readsphere.service.storage.AzureBlobService;
+import com.example.readsphere.service.storage.LocalStorageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -22,11 +24,13 @@ public class QuoteController {
     private final QuoteRepository quoteRepository;
     private final BookRepository bookRepository;
     private final AzureBlobService azureBlobService;
+    private final LocalStorageService localStorageService;
 
-    public QuoteController(QuoteRepository quoteRepository, BookRepository bookRepository, AzureBlobService azureBlobService) {
+    public QuoteController(QuoteRepository quoteRepository, BookRepository bookRepository, AzureBlobService azureBlobService, LocalStorageService localStorageService) {
         this.quoteRepository = quoteRepository;
         this.bookRepository = bookRepository;
         this.azureBlobService = azureBlobService;
+        this.localStorageService = localStorageService;
     }
 
     @GetMapping("/book/{bookId}")
@@ -68,7 +72,17 @@ public class QuoteController {
     public ResponseEntity<?> uploadImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
         return quoteRepository.findById(id).map(q -> {
             try {
-                String url = azureBlobService.uploadCover(file);
+                // Try Azure first; if not configured or fails, fall back to local disk storage
+                String url;
+                try {
+                    url = azureBlobService.uploadCover(file);
+                } catch (Exception ex) {
+                    String storedPath = localStorageService.saveQuoteImage(file); // /files/quotes/<file>
+                    url = ServletUriComponentsBuilder.fromCurrentContextPath()
+                            .path(storedPath.startsWith("/") ? storedPath : "/" + storedPath)
+                            .toUriString();
+                }
+
                 q.setImageUrl(url);
                 return ResponseEntity.ok(quoteRepository.save(q));
             } catch (Exception e) {

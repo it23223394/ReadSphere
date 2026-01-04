@@ -449,6 +449,49 @@ public class AdminController {
     }
 
     /**
+     * Catalog analytics by genre
+     * GET /api/admin/analytics/catalog
+     */
+    @GetMapping("/analytics/catalog")
+    public ResponseEntity<?> analyticsCatalog() {
+        try {
+            // Get all catalog books and group by genre
+            List<BookCatalog> allBooks = catalogRepository.findAll();
+            Map<String, Integer> genreCount = new HashMap<>();
+            Map<String, Double> genreAvgRating = new HashMap<>();
+
+            for (BookCatalog book : allBooks) {
+                String genre = book.getGenre() != null ? book.getGenre() : "Unknown";
+                genreCount.put(genre, genreCount.getOrDefault(genre, 0) + 1);
+                
+                Double currentAvg = genreAvgRating.getOrDefault(genre, 0.0);
+                genreAvgRating.put(genre, currentAvg + (book.getAverageRating() != null ? book.getAverageRating() : 0.0));
+            }
+
+            // Calculate average ratings per genre
+            for (String genre : genreAvgRating.keySet()) {
+                int count = genreCount.getOrDefault(genre, 1);
+                genreAvgRating.put(genre, Math.round((genreAvgRating.get(genre) / count) * 10.0) / 10.0);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("genreCount", genreCount);
+            response.put("genreAvgRating", genreAvgRating);
+            response.put("totalBooks", allBooks.size());
+            response.put("totalGenres", genreCount.size());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("genreCount", new HashMap<>());
+            fallback.put("genreAvgRating", new HashMap<>());
+            fallback.put("totalBooks", 0);
+            fallback.put("totalGenres", 0);
+            fallback.put("warning", "Catalog analytics unavailable: " + e.getMessage());
+            return ResponseEntity.ok(fallback);
+        }
+    }
+
+    /**
      * List Catalog Books (Admin only)
      * GET /api/admin/catalog?page=0&size=20&search=query
      */

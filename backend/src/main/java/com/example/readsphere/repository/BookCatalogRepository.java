@@ -19,7 +19,7 @@ public interface BookCatalogRepository extends JpaRepository<BookCatalog, Long> 
     
     List<BookCatalog> findByAuthorContainingIgnoreCase(String author);
     
-    @Query("SELECT b FROM BookCatalog b WHERE b.genre = :genre AND b.averageRating >= :minRating ORDER BY b.averageRating DESC")
+    @Query("SELECT b FROM BookCatalog b WHERE LOWER(b.genre) = LOWER(:genre) AND b.averageRating >= :minRating ORDER BY b.averageRating DESC")
     List<BookCatalog> findTopRatedByGenre(@Param("genre") String genre, @Param("minRating") Double minRating);
     
     @Query("SELECT b FROM BookCatalog b WHERE b.averageRating >= :minRating ORDER BY b.averageRating DESC")

@@ -6,12 +6,12 @@ import {
   filterBooksByStatus,
   createBook,
   updateBook,
+  updateUserBook,
   deleteBook,
   deleteUserBook,
-  
-  importBooksCSV,
   getBookById,
-    getProfile
+  getProfile,
+  getCatalogGenres
 } from "../services/api";
 import { Navbar } from "../components/Navbar";
 import { Link } from "react-router-dom";
@@ -26,14 +26,33 @@ function Bookshelf() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: "", author: "", genre: "", totalPages: 1, pagesRead: 0, status: "WANT_TO_READ", rating: null });
   const [editing, setEditing] = useState(null);
-  const [csvFile, setCsvFile] = useState(null);
-  const fileInputRef = useRef(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportModalTitle, setExportModalTitle] = useState('');
+  const [exportModalItems, setExportModalItems] = useState([]);
+  const [exportEndpoint, setExportEndpoint] = useState('');
+  const [exportFilename, setExportFilename] = useState('');
+  
+  // Genre autocomplete states
+  const [catalogGenres, setCatalogGenres] = useState([]);
+  const [genreInput, setGenreInput] = useState("");
+  const [showGenreDropdown, setShowGenreDropdown] = useState(false);
+  const [filteredGenres, setFilteredGenres] = useState([]);
+  const [isCustomGenre, setIsCustomGenre] = useState(false);
+  const genreInputRef = useRef(null);
+  const genreDropdownRef = useRef(null);
 
   useEffect(() => {
     getProfile().then(p => {
       const uid = p?.id || p?.user?.id; // support different profile shapes
       setUserId(uid || 1);
     }).catch(() => setUserId(1));
+    
+    // Fetch catalog genres
+    getCatalogGenres().then(genres => {
+      setCatalogGenres(genres);
+    }).catch(err => {
+      console.error('Failed to load genres:', err);
+    });
   }, []);
 
   useEffect(() => {
@@ -83,6 +102,34 @@ function Bookshelf() {
       .catch(err => console.error('Download failed:', err));
   };
 
+  const openExportModal = (type) => {
+    let items = [];
+    let title = '';
+    let endpoint = '';
+    let filename = '';
+    if (type === 'favorites') {
+      items = books.filter(b => (b.rating || 0) >= 4);
+      title = 'Favorites';
+      endpoint = 'favorites';
+      filename = 'favorites.pdf';
+    } else if (type === 'top5') {
+      items = [...books].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 5);
+      title = 'Top 5';
+      endpoint = 'top5';
+      filename = 'top5-books.pdf';
+    } else {
+      items = books;
+      title = 'All Books';
+      endpoint = 'all';
+      filename = 'my-books.pdf';
+    }
+    setExportModalItems(items);
+    setExportModalTitle(title);
+    setExportEndpoint(endpoint);
+    setExportFilename(filename);
+    setExportModalOpen(true);
+  };
+
   const handleSearch = async (e) => {
     const value = e.target.value;
     setQ(value);
@@ -104,6 +151,63 @@ function Bookshelf() {
     }
   };
 
+  // Genre autocomplete handlers
+  const handleGenreInputChange = (e) => {
+    const value = e.target.value;
+    setGenreInput(value);
+    setIsCustomGenre(false);
+    
+    if (value.trim() === "") {
+      setFilteredGenres([]);
+      setShowGenreDropdown(false);
+    } else {
+      // Filter genres that start with the input value (case insensitive)
+      const filtered = catalogGenres.filter(genre => 
+        genre.toLowerCase().startsWith(value.toLowerCase())
+      );
+      setFilteredGenres(filtered);
+      setShowGenreDropdown(true);
+    }
+    
+    // Update form genre value
+    setForm({ ...form, genre: value });
+  };
+
+  const handleGenreSelect = (genre) => {
+    if (genre === "Other") {
+      setIsCustomGenre(true);
+      setGenreInput("");
+      setForm({ ...form, genre: "" });
+      setShowGenreDropdown(false);
+    } else {
+      // Set both genreInput (for display) and form.genre (for submission)
+      setGenreInput(genre);
+      setForm({ ...form, genre: genre });
+      setShowGenreDropdown(false);
+      setIsCustomGenre(false);
+      setFilteredGenres([]);
+    }
+  };
+
+  const handleGenreFocus = () => {
+    if (genreInput.trim() !== "" && filteredGenres.length > 0) {
+      setShowGenreDropdown(true);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (genreDropdownRef.current && !genreDropdownRef.current.contains(event.target) &&
+          genreInputRef.current && !genreInputRef.current.contains(event.target)) {
+        setShowGenreDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const submitAdd = async (e) => {
     e.preventDefault();
     if (!userId) return;
@@ -111,22 +215,69 @@ function Bookshelf() {
     setBooks([created, ...books]);
     setShowAdd(false);
     setForm({ title: "", author: "", genre: "", totalPages: 1, pagesRead: 0, status: "WANT_TO_READ", rating: null });
+    setGenreInput("");
+    setIsCustomGenre(false);
   };
 
   const startEdit = async (id) => {
-    const b = await getBookById(id);
-    setEditing(b);
-    setForm({ title: b.title, author: b.author, genre: b.genre, totalPages: b.totalPages, pagesRead: b.pagesRead, status: b.status, rating: b.rating });
-    setShowAdd(true);
+    // For catalog books (prefixed with catalog_), use data from state
+    const bookFromState = books.find(b => b.id === id);
+    if (bookFromState && bookFromState.isFromCatalog) {
+      setEditing(bookFromState);
+      setForm({ 
+        title: bookFromState.title, 
+        author: bookFromState.author, 
+        genre: bookFromState.genre, 
+        totalPages: bookFromState.totalPages, 
+        pagesRead: bookFromState.pagesRead, 
+        status: bookFromState.status, 
+        rating: bookFromState.rating 
+      });
+      setGenreInput(bookFromState.genre || "");
+      setIsCustomGenre(false);
+      setShowAdd(true);
+    } else {
+      // For legacy books, fetch from API
+      const b = await getBookById(id);
+      setEditing(b);
+      setForm({ title: b.title, author: b.author, genre: b.genre, totalPages: b.totalPages, pagesRead: b.pagesRead, status: b.status, rating: b.rating });
+      setGenreInput(b.genre || "");
+      setIsCustomGenre(false);
+      setShowAdd(true);
+    }
   };
 
   const submitEdit = async (e) => {
     e.preventDefault();
-    const updated = await updateBook(editing.id, form);
-    setBooks(books.map(b => b.id === updated.id ? updated : b));
-    setEditing(null);
-    setShowAdd(false);
-    setForm({ title: "", author: "", genre: "", totalPages: 1, pagesRead: 0, status: "WANT_TO_READ", rating: null });
+    try {
+      if (editing.isFromCatalog) {
+        // For catalog books, update via UserBook API
+        await updateUserBook(editing.userBookId, {
+          status: form.status,
+          pagesRead: form.pagesRead,
+          rating: form.rating
+        });
+        // Update in state with new values
+        const updatedBook = {
+          ...editing,
+          status: form.status,
+          pagesRead: form.pagesRead,
+          rating: form.rating
+        };
+        setBooks(books.map(b => b.id === editing.id ? updatedBook : b));
+      } else {
+        // For legacy books, use original updateBook API
+        const updated = await updateBook(editing.id, form);
+        setBooks(books.map(b => b.id === updated.id ? updated : b));
+      }
+      setEditing(null);
+      setShowAdd(false);
+      setForm({ title: "", author: "", genre: "", totalPages: 1, pagesRead: 0, status: "WANT_TO_READ", rating: null });
+      setGenreInput("");
+      setIsCustomGenre(false);
+    } catch (err) {
+      alert('Failed to update book: ' + err.message);
+    }
   };
 
   const confirmDelete = async (id, isFromCatalog = false, userBookId = null) => {
@@ -135,7 +286,19 @@ function Bookshelf() {
       if (isFromCatalog && userBookId) {
         await deleteUserBook(userBookId);
       } else {
-        await deleteBook(id);
+        // Extract numeric ID if it has catalog_ prefix, ensure it's a number
+        let numericId = id;
+        if (typeof id === 'string' && id.startsWith('catalog_')) {
+          numericId = parseInt(id.replace('catalog_', ''), 10);
+        } else if (typeof id === 'string') {
+          numericId = parseInt(id, 10);
+        }
+        
+        if (isNaN(numericId)) {
+          throw new Error('Invalid book ID');
+        }
+        
+        await deleteBook(numericId);
       }
       setBooks(books.filter(b => b.id !== id));
     } catch (err) {
@@ -147,19 +310,6 @@ function Bookshelf() {
   // Cover upload removed per user request
 
   // Reading progress controls removed per request
-
-  const handleClickImport = () => fileInputRef.current?.click();
-  const handleCsvChosen = async (e) => {
-    const f = e.target.files?.[0];
-    if (!f || !userId) return;
-    setCsvFile(f);
-    const result = await importBooksCSV(userId, f);
-    alert(`Imported: ${result.imported}, Failed: ${result.failed}`);
-    const refreshed = await getBooksByUser(userId);
-    setBooks(refreshed);
-    setCsvFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   return (
     <div>
@@ -182,43 +332,99 @@ function Bookshelf() {
               <option value="READING">Reading</option>
               <option value="WANT_TO_READ">Want to Read</option>
             </select>
-            <button className="btn btn-secondary" onClick={() => setShowAdd(true)}>➕ Add Book</button>
+            <button className="btn btn-secondary" onClick={() => {
+              setForm({ title: "", author: "", genre: "", totalPages: 1, pagesRead: 0, status: "WANT_TO_READ", rating: null });
+              setGenreInput("");
+              setIsCustomGenre(false);
+              setShowGenreDropdown(false);
+              setEditing(null);
+              setShowAdd(true);
+            }}>➕ Add Book</button>
             <div className="flex gap-2">
               <button
-                onClick={() => downloadPdf('favorites', 'favorites.pdf')}
+                onClick={() => openExportModal('favorites')}
                 className="btn btn-secondary"
-                title="Download Favorites PDF"
+                title="View Favorites"
               >
                 📥 Favorites
               </button>
               <button
-                onClick={() => downloadPdf('top5', 'top5-books.pdf')}
+                onClick={() => openExportModal('top5')}
                 className="btn btn-secondary"
-                title="Download Top 5 PDF"
+                title="View Top 5"
               >
                 ⭐ Top 5
               </button>
               <button
-                onClick={() => downloadPdf('all', 'my-books.pdf')}
+                onClick={() => openExportModal('all')}
                 className="btn btn-secondary"
-                title="Download All Books PDF"
+                title="View All Books"
               >
                 📚 All
               </button>
             </div>
-            <button className="btn btn-secondary" onClick={handleClickImport}>📤 Import CSV</button>
-            <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCsvChosen} style={{ display: 'none' }} />
           </div>
         </div>
-        {/* Import runs immediately after file selection */}
+
+        {/* Export List Modal */}
+        <Modal
+          open={exportModalOpen}
+          title={`📄 ${exportModalTitle}`}
+          onClose={() => setExportModalOpen(false)}
+          footer={
+            <>
+              <button
+                onClick={() => downloadPdf(exportEndpoint, exportFilename)}
+                className="btn btn-item"
+                title="Export PDF"
+              >
+                ⬇️ Export PDF
+              </button>
+              <button className="btn btn-secondary" onClick={() => setExportModalOpen(false)}>Close</button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            {exportModalItems.length === 0 ? (
+              <div className="text-muted">No items to show.</div>
+            ) : (
+              exportModalItems.map(item => (
+                <div key={item.id} className="flex items-center gap-3 card p-3">
+                  {item.coverUrl && (
+                    <img src={item.coverUrl} alt={item.title} className="w-16 h-16 object-cover rounded" />
+                  )}
+                  <div className="flex-1">
+                    <div className="font-semibold">{item.title}</div>
+                    <div className="text-sm text-muted">{item.author} • {item.genre}</div>
+                    {item.rating != null && (
+                      <div className="text-xs text-muted">Rating: {item.rating}</div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Modal>
       </div>
 
       <Modal
         open={showAdd}
-        onClose={() => { setShowAdd(false); setEditing(null); }}
+        onClose={() => { 
+          setShowAdd(false); 
+          setEditing(null); 
+          setGenreInput(""); 
+          setIsCustomGenre(false); 
+          setShowGenreDropdown(false);
+        }}
         title={editing ? "Edit Book" : "Add Book"}
         footer={[
-          <button key="cancel" type="button" className="btn btn-tertiary" onClick={() => { setShowAdd(false); setEditing(null); }}>Cancel</button>,
+          <button key="cancel" type="button" className="btn btn-tertiary" onClick={() => { 
+            setShowAdd(false); 
+            setEditing(null); 
+            setGenreInput(""); 
+            setIsCustomGenre(false); 
+            setShowGenreDropdown(false);
+          }}>Cancel</button>,
           <button key="submit" type="submit" form="book-form" className="btn">{editing ? "Save Changes" : "Add Book"}</button>
         ]}
       >
@@ -231,9 +437,102 @@ function Bookshelf() {
             <span className="text-xs text-muted">Author</span>
             <input className="input" value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} required />
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1" style={{ position: 'relative' }}>
             <span className="text-xs text-muted">Genre</span>
-            <input className="input" value={form.genre} onChange={e => setForm({ ...form, genre: e.target.value })} required />
+            {isCustomGenre ? (
+              <div>
+                <input 
+                  className="input" 
+                  value={form.genre} 
+                  onChange={e => setForm({ ...form, genre: e.target.value })} 
+                  placeholder="Enter custom genre"
+                  required 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setIsCustomGenre(false);
+                    setGenreInput("");
+                    setForm({ ...form, genre: "" });
+                  }}
+                  className="text-xs text-muted"
+                  style={{ marginTop: '4px' }}
+                >
+                  ← Back to genre list
+                </button>
+              </div>
+            ) : (
+              <>
+                <input 
+                  ref={genreInputRef}
+                  className="input" 
+                  value={genreInput} 
+                  onChange={handleGenreInputChange}
+                  onFocus={handleGenreFocus}
+                  placeholder="Type to search genres..."
+                  required 
+                />
+                {showGenreDropdown && (filteredGenres.length > 0 || genreInput.trim() !== "") && (
+                  <div 
+                    ref={genreDropdownRef}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: '#faf8f5',
+                      border: '1px solid #d4c5b0',
+                      borderRadius: '4px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      marginTop: '2px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    {filteredGenres.map((genre, index) => (
+                      <div
+                        key={index}
+                        onClick={() => handleGenreSelect(genre)}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #e8dfd0',
+                          backgroundColor: '#faf8f5',
+                          color: '#4a3c2a'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f0e8d8';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#faf8f5';
+                        }}
+                      >
+                        {genre}
+                      </div>
+                    ))}
+                    <div
+                      onClick={() => handleGenreSelect("Other")}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        fontStyle: 'italic',
+                        color: '#8c7a5f',
+                        backgroundColor: '#faf8f5'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f0e8d8';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#faf8f5';
+                      }}
+                    >
+                      Other (enter custom genre)
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted">Status</span>

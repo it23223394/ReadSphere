@@ -16,11 +16,9 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoError, setVideoError] = useState(false);
 
   const publicUrl = process.env.PUBLIC_URL || '';
-  const videoSrc = `${publicUrl}/videos/books-falling.mp4.mp4`;
-  const posterSrc = `${publicUrl}/videos/books-falling.jpg`;
+  const bgImageSrc = `${publicUrl}/images/1.webp`;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,8 +56,9 @@ const RegisterPage = () => {
       localStorage.setItem('userId', data.userId);
       localStorage.setItem('role', data.role || 'USER');
 
-      // Use AuthContext login function to update global state
-      login(data.userId, data.role || 'USER');
+      // Use AuthContext login function to update global state with theme
+      const userTheme = data.theme || 'light';
+      login(data.userId, data.role || 'USER', userTheme);
 
       setSuccess('Registration successful! Redirecting...');
       setTimeout(() => {
@@ -74,24 +73,8 @@ const RegisterPage = () => {
 
   return (
     <div className="auth-container">
-      {/* Video Background */}
-      <video
-        key={videoSrc}
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        className="video-background"
-        poster={posterSrc}
-        onLoadedData={() => setVideoLoaded(true)}
-        onError={(e) => {
-          console.error('Background video failed to load:', videoSrc, e);
-          setVideoError(true);
-        }}
-      >
-        <source src={videoSrc} type="video/mp4" />
-      </video>
+      {/* Image Background */}
+      <img src={bgImageSrc} alt="background" className="video-background" />
       <div className="video-overlay"></div>
 
       <div className="auth-card">
@@ -99,9 +82,6 @@ const RegisterPage = () => {
         <p className="auth-subtitle">Join ReadSphere and start tracking your reading</p>
 
         {error && <div className="error-message">{error}</div>}
-        {videoError && (
-          <div className="error-message">Background video failed to load. Check /public/videos/books-falling.mp4</div>
-        )}
         {success && <div className="success-message">{success}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">

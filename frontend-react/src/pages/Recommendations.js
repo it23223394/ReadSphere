@@ -47,12 +47,19 @@ function Recommendations() {
 
   const byGenre = useMemo(() => {
     const grouped = {};
+    const genreOrder = []; // Track order of first appearance
+    
     recs.forEach(b => {
       const g = b.genre || 'General';
-      if (!grouped[g]) grouped[g] = [];
+      if (!grouped[g]) {
+        grouped[g] = [];
+        genreOrder.push(g); // Remember the order genres appear
+      }
       grouped[g].push(b);
     });
-    return Object.entries(grouped);
+    
+    // Return entries in the order they appeared (backend's sorted order)
+    return genreOrder.map(genre => [genre, grouped[genre]]);
   }, [recs]);
 
   const handleFeedback = async (bookId, feedback) => {

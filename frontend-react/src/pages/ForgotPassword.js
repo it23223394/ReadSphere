@@ -8,6 +8,9 @@ const ForgotPassword = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const publicUrl = process.env.PUBLIC_URL || '';
+  const bgImageSrc = `${publicUrl}/images/1.webp`;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -25,6 +28,9 @@ const ForgotPassword = () => {
 
   return (
     <div className="auth-container">
+      {/* Image Background */}
+      <img src={bgImageSrc} alt="background" className="video-background" />
+      <div className="video-overlay"></div>
       <div className="auth-card">
         <h1>Forgot Password</h1>
         <p className="auth-subtitle">Enter your email to receive a reset link</p>

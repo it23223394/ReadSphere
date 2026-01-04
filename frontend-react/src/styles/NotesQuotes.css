@@ -34,7 +34,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: #000000;
+  background: var(--color-text);
   animation: slideIn 0.3s ease-out;
 }
 

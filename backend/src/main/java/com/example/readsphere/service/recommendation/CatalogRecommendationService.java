@@ -34,6 +34,34 @@ public class CatalogRecommendationService {
         this.userBookRepository = userBookRepository;
         this.feedbackRepository = feedbackRepository;
     }
+    
+    /**
+     * Normalize genre names to match catalog genres (case-insensitive, handles variations)
+     */
+    private String normalizeGenre(String genre) {
+        if (genre == null || genre.isBlank()) {
+            return null;
+        }
+        
+        String normalized = genre.trim().toLowerCase();
+        
+        // Handle common variations and typos
+        if (normalized.contains("psycholog") || normalized.contains("pscolog")) {
+            return "Mystery"; // Map psychological thrillers to Mystery
+        }
+        if (normalized.contains("fantas") || normalized.contains("fanasy")) {
+            return "Fantasy";
+        }
+        if (normalized.contains("sci-fi") || normalized.contains("science fiction")) {
+            return "Sci-Fi";
+        }
+        if (normalized.equals("self-help") || normalized.contains("self help")) {
+            return "Self-Help";
+        }
+        
+        // Return capitalized first letter for standard genres
+        return genre.substring(0, 1).toUpperCase() + genre.substring(1).toLowerCase();
+    }
 
     public List<RecommendationResponse> recommendFromCatalog(Long userId, boolean refresh) {
         // Get user's reading history from legacy books (for genre analysis)
@@ -45,38 +73,58 @@ public class CatalogRecommendationService {
                 .map(ub -> ub.getCatalogBook().getId())
                 .collect(Collectors.toSet());
 
-        // Analyze favorite genres from READ books
+        // Analyze favorite genres with weighted scoring
+        // READ/READING books get weight of 3, WANT_TO_READ gets weight of 1
         Map<String, Long> genreFrequency = new HashMap<>();
         
-        // Count from legacy books
+        // Count from legacy books (both READ and READING) - weight 3
         userBooks.stream()
-                .filter(this::isRead)
+                .filter(this::isReadOrReading)
                 .filter(book -> book.getGenre() != null && !book.getGenre().isBlank())
-                .forEach(book -> genreFrequency.merge(book.getGenre(), 1L, Long::sum));
+                .forEach(book -> {
+                    String normalized = normalizeGenre(book.getGenre());
+                    if (normalized != null) {
+                        genreFrequency.merge(normalized, 3L, (a, b) -> a + b);
+                    }
+                });
         
-        // Count from catalog books
-        userCatalogBooks.stream()
-                .filter(ub -> "READ".equalsIgnoreCase(ub.getStatus()))
-                .map(ub -> ub.getCatalogBook().getGenre())
-                .filter(Objects::nonNull)
-                .forEach(genre -> genreFrequency.merge(genre, 1L, Long::sum));
+        // Count from catalog books with status-based weighting
+        userCatalogBooks.forEach(ub -> {
+            if (ub.getCatalogBook().getGenre() != null) {
+                String normalized = normalizeGenre(ub.getCatalogBook().getGenre());
+                if (normalized != null) {
+                    long weight = isReadOrReadingStatus(ub.getStatus()) ? 3L : 1L;
+                    genreFrequency.merge(normalized, weight, (a, b) -> a + b);
+                }
+            }
+        });
 
         // Find highly rated books from user's library for similarity
         List<String> highlyRatedGenres = new ArrayList<>();
         
         userBooks.stream()
-                .filter(this::isRead)
+                .filter(this::isReadOrReading)
                 .filter(book -> Optional.ofNullable(book.getRating()).orElse(0) >= 4)
                 .map(Book::getGenre)
                 .filter(Objects::nonNull)
-                .forEach(highlyRatedGenres::add);
+                .forEach(genre -> {
+                    String normalized = normalizeGenre(genre);
+                    if (normalized != null) {
+                        highlyRatedGenres.add(normalized);
+                    }
+                });
         
         userCatalogBooks.stream()
-                .filter(ub -> "READ".equalsIgnoreCase(ub.getStatus()))
+                .filter(ub -> isReadOrReadingStatus(ub.getStatus()))
                 .filter(ub -> Optional.ofNullable(ub.getRating()).orElse(0) >= 4)
                 .map(ub -> ub.getCatalogBook().getGenre())
                 .filter(Objects::nonNull)
-                .forEach(highlyRatedGenres::add);
+                .forEach(genre -> {
+                    String normalized = normalizeGenre(genre);
+                    if (normalized != null) {
+                        highlyRatedGenres.add(normalized);
+                    }
+                });
 
         Map<Long, RecommendationResponse> recommendations = new LinkedHashMap<>();
 
@@ -88,16 +136,26 @@ public class CatalogRecommendationService {
                     .map(Map.Entry::getKey)
                     .toList();
 
-            for (String genre : topGenres) {
-                List<BookCatalog> genreBooks = catalogRepository.findTopRatedByGenre(genre, 4.0);
-                genreBooks.stream()
-                        .filter(book -> !userCatalogBookIds.contains(book.getId()))
-                        .limit(5)
-                        .forEach(book -> recommendations.putIfAbsent(
-                                book.getId(),
-                                catalogToRecommendation(book, "Top genre: " + genre, "GENRE")
-                        ));
-            }
+                        // Add recommendations in order of genre frequency (most frequent first)
+                        for (String genre : topGenres) {
+                                List<BookCatalog> genreBooks = catalogRepository.findTopRatedByGenre(genre, 4.0);
+                                genreBooks.stream()
+                                                .filter(book -> !userCatalogBookIds.contains(book.getId()))
+                                                .limit(4)
+                                                .forEach(book -> {
+                                                        if (!recommendations.containsKey(book.getId())) {
+                                                                recommendations.put(
+                                                                                book.getId(),
+                                                                                catalogToRecommendation(book, "Popular in " + genre + " (your favorite genre)", "GENRE")
+                                                                );
+                                                        }
+                                                });
+                
+                                // Stop if we have enough recommendations
+                                if (recommendations.size() >= MAX_RESULTS) {
+                                        break;
+                                }
+                        }
         }
 
         // RS-502: Rating-based recommendations (similar to highly-rated books)
@@ -179,5 +237,17 @@ public class CatalogRecommendationService {
 
     private boolean isRead(Book book) {
         return book != null && book.getStatus() != null && "READ".equalsIgnoreCase(book.getStatus());
+    }
+
+    private boolean isReadOrReading(Book book) {
+        if (book == null || book.getStatus() == null) return false;
+        String status = book.getStatus().toUpperCase();
+        return status.equals("READ") || status.equals("READING");
+    }
+
+    private boolean isReadOrReadingStatus(String status) {
+        if (status == null) return false;
+        String upperStatus = status.toUpperCase();
+        return upperStatus.equals("READ") || upperStatus.equals("READING");
     }
 }

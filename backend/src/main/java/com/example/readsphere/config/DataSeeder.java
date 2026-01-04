@@ -13,6 +13,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
 public class DataSeeder {
@@ -23,10 +30,14 @@ public class DataSeeder {
                                     BookCatalogRepository catalogRepository) {
         return args -> {
             try {
-                // Seed book catalog first (always check if empty)
-                if (catalogRepository.count() == 0) {
+                // Seed or top-up book catalog
+                long catalogCount = catalogRepository.count();
+                catalogCount -= pruneFakeExplorerEntries(catalogRepository);
+                if (catalogCount == 0) {
                     seedBookCatalog(catalogRepository);
                     System.out.println("✅ Catalog seeded successfully!");
+                } else if (catalogCount < 250) {
+                    topUpCatalogWithRealTitles(catalogRepository, (int) catalogCount);
                 }
 
                 // Seed admin user (idempotent - won't duplicate)
@@ -219,8 +230,120 @@ public class DataSeeder {
         catalog.add(new BookCatalog("The Haunting of Hill House", "Shirley Jackson", "Horror",
             "Paranormal investigators study supposedly haunted mansion.", 4.4, 246));
 
+        // Import additional real titles from Open Library to reach 250+
+        int desired = Math.max(0, 250 - catalog.size());
+        if (desired > 0) {
+            int added = addFromOpenLibrary(catalog, desired, catalog);
+            System.out.println("🌐 Open Library imports added: " + added);
+        }
+
         catalogRepository.saveAll(catalog);
         System.out.println("📚 Seeded " + catalog.size() + " books into catalog");
+    }
+
+    private void topUpCatalogWithRealTitles(BookCatalogRepository catalogRepository, int existingCount) {
+        try {
+            int target = 250;
+            int needed = Math.max(0, target - existingCount);
+            if (needed == 0) {
+                System.out.println("ℹ️ Catalog already has " + existingCount + " books. No top-up needed.");
+                return;
+            }
+            List<BookCatalog> existing = catalogRepository.findAll();
+            List<BookCatalog> additions = new ArrayList<>();
+            int added = addFromOpenLibrary(additions, needed, existing);
+            if (added == 0) {
+                System.err.println("⚠️ Open Library unavailable; skipping fabricated entries per request.");
+            }
+            if (!additions.isEmpty()) {
+                catalogRepository.saveAll(additions);
+                System.out.println("✅ Top-up added " + additions.size() + " real titles (from " + existingCount + " to " + (existingCount + additions.size()) + ")");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Catalog top-up failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Import real titles from Open Library subjects and add to the provided list.
+     */
+    private int addFromOpenLibrary(List<BookCatalog> catalog, int desiredAdditional, List<BookCatalog> existingForDedupe) {
+        String[] subjects = new String[] {
+            "fiction", "fantasy", "science_fiction", "mystery",
+            "romance", "horror", "history", "biography",
+            "business", "psychology", "young_adult", "science"
+        };
+
+        RestTemplate rest = new RestTemplate();
+        ObjectMapper mapper = new ObjectMapper();
+        Set<String> seen = new HashSet<>();
+        for (BookCatalog b : existingForDedupe) {
+            seen.add((b.getTitle() + "|" + b.getAuthor()).toLowerCase());
+        }
+        for (BookCatalog b : catalog) {
+            seen.add((b.getTitle() + "|" + b.getAuthor()).toLowerCase());
+        }
+
+        AtomicInteger added = new AtomicInteger(0);
+        int perSubject = Math.max(10, (desiredAdditional / subjects.length) + 5);
+
+        for (String subject : subjects) {
+            if (added.get() >= desiredAdditional) break;
+            String url = "https://openlibrary.org/subjects/" + subject + ".json?limit=" + perSubject;
+            try {
+                String body = rest.getForObject(url, String.class);
+                JsonNode root = mapper.readTree(body);
+                JsonNode works = root.path("works");
+                if (works.isArray()) {
+                    for (JsonNode w : works) {
+                        if (added.get() >= desiredAdditional) break;
+                        String title = w.path("title").asText("");
+                        JsonNode authors = w.path("authors");
+                        String author = "Unknown";
+                        if (authors.isArray() && authors.size() > 0) {
+                            author = authors.get(0).path("name").asText("Unknown");
+                        }
+                        if (title.isBlank()) continue;
+                        String key = (title + "|" + author).toLowerCase();
+                        if (seen.contains(key)) continue;
+                        seen.add(key);
+
+                        String description = "Imported from Open Library subject: " + subject.replace('_', ' ');
+                        double rating = 0.0;
+                        int pages = 0;
+                        String genre = subject.replace('_', ' ');
+
+                        catalog.add(new BookCatalog(title, author, genre, description, rating, pages));
+                        added.incrementAndGet();
+                    }
+                }
+            } catch (Exception ex) {
+                System.err.println("⚠️ Open Library fetch failed for subject '" + subject + "': " + ex.getMessage());
+            }
+        }
+        return added.get();
+    }
+
+    private int pruneFakeExplorerEntries(BookCatalogRepository catalogRepository) {
+        try {
+            List<BookCatalog> all = catalogRepository.findAll();
+            List<BookCatalog> fake = new ArrayList<>();
+            for (BookCatalog b : all) {
+                String title = b.getTitle() == null ? "" : b.getTitle();
+                String author = b.getAuthor() == null ? "" : b.getAuthor();
+                if (author.equalsIgnoreCase("Library Team") && title.startsWith("Explorer")) {
+                    fake.add(b);
+                }
+            }
+            if (!fake.isEmpty()) {
+                catalogRepository.deleteAll(fake);
+                System.out.println("🧹 Removed " + fake.size() + " fabricated Explorer entries.");
+            }
+            return fake.size();
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to prune fake entries: " + e.getMessage());
+            return 0;
+        }
     }
 
     private void seedAdminUser(UserRepository userRepository) {

@@ -19,7 +19,6 @@ function AdminCatalogManagement() {
     author: '',
     genre: '',
     description: '',
-    rating: '',
     pageCount: ''
   });
   const { role } = useAuth();
@@ -77,7 +76,6 @@ function AdminCatalogManagement() {
         author: formData.author,
         genre: formData.genre,
         description: formData.description,
-        rating: formData.rating ? parseFloat(formData.rating) : null,
         pageCount: formData.pageCount ? parseInt(formData.pageCount) : null
       };
 
@@ -104,7 +102,6 @@ function AdminCatalogManagement() {
       author: book.author,
       genre: book.genre,
       description: book.description || '',
-      rating: book.averageRating || '',
       pageCount: book.totalPages || ''
     });
     setEditingId(book.id);
@@ -127,7 +124,7 @@ function AdminCatalogManagement() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingId(null);
-    setFormData({ title: '', author: '', genre: '', description: '', rating: '', pageCount: '' });
+    setFormData({ title: '', author: '', genre: '', description: '', pageCount: '' });
   };
 
   if (loading) {
@@ -204,19 +201,6 @@ function AdminCatalogManagement() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Rating (0-5)</label>
-                  <input
-                    type="number"
-                    name="rating"
-                    value={formData.rating}
-                    onChange={handleFormChange}
-                    min="0"
-                    max="5"
-                    step="0.1"
-                    placeholder="4.5"
-                  />
-                </div>
-                <div className="form-group">
                   <label>Page Count</label>
                   <input
                     type="number"
@@ -263,10 +247,24 @@ function AdminCatalogManagement() {
             }}
             className="search-input"
           />
-          <span className="search-count">{books.length} books</span>
+          <div className="page-jump">
+            <label htmlFor="page-jump-select">Go to page</label>
+            <select
+              id="page-jump-select"
+              value={Math.min(currentPage + 1, Math.max(totalPages, 1))}
+              onChange={(e) => {
+                const pageNumber = parseInt(e.target.value, 10) - 1;
+                goToPage(pageNumber);
+              }}
+            >
+              {Array.from({ length: Math.max(totalPages, 1) }, (_, i) => (
+                <option key={i + 1} value={i + 1}>{i + 1}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="table-container">
+        <div className="table-container catalog-table-wrapper">
           <table className="catalog-table">
             <thead>
               <tr>
@@ -274,7 +272,6 @@ function AdminCatalogManagement() {
                 <th>Title</th>
                 <th>Author</th>
                 <th>Genre</th>
-                <th>Rating</th>
                 <th>Pages</th>
                 <th>Actions</th>
               </tr>
@@ -282,7 +279,7 @@ function AdminCatalogManagement() {
             <tbody>
               {books.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center">No books found</td>
+                  <td colSpan="6" className="text-center">No books found</td>
                 </tr>
               ) : (
                 books.map((book, index) => {
@@ -293,7 +290,6 @@ function AdminCatalogManagement() {
                     <td className="text-ellipsis">{book.title}</td>
                     <td>{book.author}</td>
                     <td>{book.genre}</td>
-                    <td>{book.averageRating ? Number(book.averageRating).toFixed(1) : '—'}</td>
                     <td>{book.totalPages || '—'}</td>
                     <td>
                       <div className="action-buttons">
@@ -326,6 +322,7 @@ function AdminCatalogManagement() {
             <button
               type="button"
               className="btn-small"
+              style={{ color: '#000000' }}
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 0}
             >
@@ -337,6 +334,7 @@ function AdminCatalogManagement() {
             <button
               type="button"
               className="btn-small"
+              style={{ color: '#000000' }}
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage >= totalPages - 1}
             >

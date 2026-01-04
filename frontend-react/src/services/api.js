@@ -55,7 +55,17 @@ export const deleteBook = async (id) => {
     method: 'DELETE',
     headers: getAuthHeaders()
   });
-  if (!res.ok) throw new Error('Failed to delete book');
+  if (!res.ok) {
+    const text = await res.text();
+    let errorMsg = 'Failed to delete book';
+    try {
+      const data = JSON.parse(text);
+      errorMsg = data.error || data.message || errorMsg;
+    } catch (e) {
+      errorMsg = text || errorMsg;
+    }
+    throw new Error(errorMsg);
+  }
 };
 
 export const deleteUserBook = async (userBookId) => {
@@ -242,6 +252,19 @@ export const addBookToShelf = async (userId, catalogBookId, status = 'WANT_TO_RE
   return res.json();
 };
 
+export const updateUserBook = async (userBookId, { status, pagesRead, rating }) => {
+  const res = await fetch(`${API_URL}/user-books/${userBookId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ status, pagesRead, rating })
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to update user book');
+  }
+  return res.json();
+};
+
 // Notes APIs
 export const getNotesByBook = async (userId, bookId) => {
   const res = await fetch(`${API_URL}/notes/book/${bookId}?userId=${userId}`, { headers: getAuthHeaders() });
@@ -375,6 +398,15 @@ export const getAdminAnalyticsReading = async (range = 'weekly') => {
   const res = await fetch(url, { headers: getAuthHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to fetch reading analytics');
+  return data;
+};
+
+export const getAdminAnalyticsCatalog = async () => {
+  const res = await fetch(`${API_URL}/admin/analytics/catalog`, {
+    headers: getAuthHeaders()
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch catalog analytics');
   return data;
 };
 

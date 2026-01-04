@@ -4,6 +4,7 @@ import com.example.readsphere.model.Book;
 import com.example.readsphere.model.User;
 import com.example.readsphere.repository.BookRepository;
 import com.example.readsphere.repository.UserRepository;
+import com.example.readsphere.repository.ReadingLogRepository;
 import com.example.readsphere.dto.BookRequest;
 import com.example.readsphere.dto.ImportResult;
 import com.example.readsphere.service.storage.AzureBlobService;
@@ -26,11 +27,13 @@ public class BookController {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final AzureBlobService azureBlobService;
+    private final ReadingLogRepository readingLogRepository;
 
-    public BookController(BookRepository bookRepository, UserRepository userRepository, AzureBlobService azureBlobService) {
+    public BookController(BookRepository bookRepository, UserRepository userRepository, AzureBlobService azureBlobService, ReadingLogRepository readingLogRepository) {
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
         this.azureBlobService = azureBlobService;
+        this.readingLogRepository = readingLogRepository;
     }
 
     @GetMapping
@@ -80,7 +83,12 @@ public class BookController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteBook(@PathVariable Long id) {
         if (!bookRepository.existsById(id)) return ResponseEntity.notFound().build();
-        bookRepository.deleteById(id); // cascade will remove notes/quotes
+        
+        // First, delete all reading logs associated with this book
+        readingLogRepository.deleteByBookId(id);
+        
+        // Then delete the book (cascade will remove notes/quotes)
+        bookRepository.deleteById(id);
         return ResponseEntity.ok().build();
     }
 
